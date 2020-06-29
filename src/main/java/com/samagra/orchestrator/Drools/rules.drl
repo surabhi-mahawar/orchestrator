@@ -1,0 +1,23 @@
+package com.samagra.orchestrator.changeChannel;
+//generated from Decision Table
+import messagerosa.core.model.XMessage;
+// rule values at B11, header at B6
+rule "DeliveredAndNotRead"
+	when
+		$xMessage:XMessage($xMessage.getMessageState() == "MessageState.DELIVERED", $xMessage.getCampaign() == "ResumeBuilder", $xMessage.secondsSinceLastMessage() > "20000", $xMessage.getChannel() == "WhatsApp", $xMessage.setNextDestination("Outbound");, $xMessage.setChannel("SMS");, $xMessage.setProvider("Gupshup");)
+	then
+end
+
+// rule values at B12, header at B6
+rule "ReadAndNotReplied"
+	when
+		$xMessage:XMessage($xMessage.getMessageState() == "MessageState.READ", $xMessage.getCampaign() == "Test", $xMessage.secondsSinceLastMessage() > "20000", $xMessage.getChannel() == "WhatsApp", $xMessage.setNextDestination("Outbound");, $xMessage.setChannel("SMS");, $xMessage.setProvider("Gupshup");)
+	then
+end
+
+// rule values at B13, header at B6
+rule "RetryAfter24Hours"
+	when
+		$xMessage:XMessage($xMessage.getMessageState() == "MessageState.FAILED_TO_DELIVER", $xMessage.getCampaign() == "Test", $xMessage.secondsSinceLastMessage() > "86400", $xMessage.getChannel() == "WhatsApp", $xMessage.setNextDestination("Outbound");)
+	then
+end

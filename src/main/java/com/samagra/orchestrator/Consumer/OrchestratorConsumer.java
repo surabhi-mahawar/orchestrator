@@ -23,29 +23,18 @@ import java.util.ArrayList;
 @Service
 public class OrchestratorConsumer {
 
-    @KafkaListener(id = "orchestrator", topics = "${inbound-processed}")
+    @KafkaListener(id = "orchestrator", topics = "${inboundProcessed}")
     public void consumeMessage(String message) throws Exception {
         System.out.println(message);
 
         XMessage msg = XMessageParser.parse(new ByteArrayInputStream(message.getBytes()));
 
-        // Assign Transformer
-        ArrayList<Transformer> transformers = new ArrayList<>();
-        transformers.add(new Transformer("3")); //Forms
-        transformers.add(new Transformer("4")); //Outbound
-        msg.setTransformers(transformers); //TODO change this to Drools based
-        String transformer = TransformerRegistry.getName(msg.getTransformers().get(0).getId());
+        // Adding additional context data to the system.
 
-        // Send message to "transformer" topic => "Forms"
+        // Add user
 
+        // Add previous messageID
 
-    }
-
-    @KafkaListener(id = "orchestrator", topics = "${transformer-processed}")
-    public void consumeMessageTransformer(String message) throws Exception {
-        System.out.println(message);
-
-        XMessage msg = XMessageParser.parse(new ByteArrayInputStream(message.getBytes()));
 
         // Assign Transformer
         ArrayList<Transformer> transformers = new ArrayList<>();
@@ -55,7 +44,6 @@ public class OrchestratorConsumer {
         String transformer = TransformerRegistry.getName(msg.getTransformers().get(0).getId());
 
         // Send message to "transformer" topic => "Forms"
-
 
     }
 }

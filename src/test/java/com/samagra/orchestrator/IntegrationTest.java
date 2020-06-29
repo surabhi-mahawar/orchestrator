@@ -23,11 +23,11 @@ public class IntegrationTest {
         XMessage xMessage = new XMessage();
         xMessage.setMessageState(XMessage.MessageState.DELIVERED);
         xMessage.setChannel("WhatsApp");
-        xMessage.setTimestamp("1592900000");
+        xMessage.setTimestamp((long) 1592900000);
         System.out.println(xMessage.secondsSinceLastMessage());
-        kSession.setGlobal("xMessage", xMessage);
         kSession.insert(xMessage);
         kSession.fireAllRules();
+        System.out.println(xMessage.getTransformers());
         System.out.println(xMessage.toXML());
     }
 
