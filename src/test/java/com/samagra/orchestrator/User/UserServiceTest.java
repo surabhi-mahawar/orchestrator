@@ -4,19 +4,28 @@ import io.fusionauth.client.FusionAuthClient;
 import io.fusionauth.domain.User;
 import org.junit.Before;
 import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.junit.jupiter.api.Assertions.*;
-
-public class UserServiceTest {
-
-    @InjectMocks
-    FusionAuthClient staticClient = new FusionAuthClient("${authserver.apikey}", "${authserver.apiURL}");
-
+@RunWith(SpringRunner.class)
+@SpringBootTest(classes=UserServiceTest.class)
+@EnableConfigurationProperties
+@Import(TestConfig.class)
+class UserServiceTest {
     String email = "chakshu@samagragovernance.in";
+
+    @Autowired
+    public FusionAuthClient client1;
+
+    @Mock
+    private UserService service;
 
     @Before
     public void setUp() {
@@ -25,6 +34,8 @@ public class UserServiceTest {
 
     @Test
     public void testFindByEmail(){
+        service.staticClient = client1;
+//                new FusionAuthClient("${authserver.apikey}", "${authserver.apiURL}");
         User user = UserService.findByEmail(email);
         assertEquals(user.id, "4ee2ab81-6c3f-460b-94b2-de49cf55f27f");
     }
