@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class AppConfiguration {
 
     @Bean
-    public FusionAuthClient AuthServerConnection(FusionAuthClient client) {
+    public FusionAuthClient AuthServerConnection() {
         return new FusionAuthClient("${authserver.apikey}", "${authserver.apiURL}");
     }
 }

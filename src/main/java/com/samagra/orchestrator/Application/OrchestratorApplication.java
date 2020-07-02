@@ -20,7 +20,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @PropertySource("application-messagerosa.properties")
 @PropertySource("application.properties")
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
-@ComponentScan(basePackages = {"com.samagra"})
 public class OrchestratorApplication {
 
     public static void main(String[] args) {
