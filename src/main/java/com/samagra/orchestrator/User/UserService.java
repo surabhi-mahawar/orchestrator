@@ -64,8 +64,7 @@ public class UserService {
 
         if(currentApplication != null){
             UserSearchCriteria usc = new UserSearchCriteria();
-            usc.queryString = "*" + currentApplication.id + "*";
-
+            usc.queryString = "(registrations.applicationId: " + currentApplication.id.toString() + ")";
             SearchRequest sr = new SearchRequest(usc);
             ClientResponse<SearchResponse, Errors> cr = staticClient.searchUsersByQueryString(sr);
 
@@ -76,6 +75,6 @@ public class UserService {
                 Exception exception = response.exception;
             }
         }
-        return null;
+        return new ArrayList<>();
     }
 }
