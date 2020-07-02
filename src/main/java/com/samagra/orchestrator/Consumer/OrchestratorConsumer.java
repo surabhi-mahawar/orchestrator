@@ -1,6 +1,7 @@
 package com.samagra.orchestrator.Consumer;
 
 import com.samagra.orchestrator.Drools.DroolsBeanFactory;
+import com.samagra.orchestrator.Publisher.CommonProducer;
 import com.samagra.orchestrator.User.UserService;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.SenderReceiverInfo;
@@ -34,6 +35,9 @@ public class OrchestratorConsumer {
     @Autowired
     public XMessageRepo xmsgRepo;
 
+    @Autowired
+    public CommonProducer kafkaProducer;
+
     @KafkaListener(id = "orchestrator", topics = "${inboundProcessed}")
     public void consumeMessage(String message) throws Exception {
         System.out.println(message);
@@ -61,7 +65,6 @@ public class OrchestratorConsumer {
         kSession.fireAllRules();
 
         // Send message to "transformer"
-
-
+        kafkaProducer.send(TransformerRegistry.getName(msg.getTransformers().get(0).getId()), msg.toXML());
     }
 }

@@ -1,5 +1,6 @@
 package com.samagra.orchestrator.User;
 
+import com.samagra.orchestrator.Consumer.CampaignConsumer;
 import io.fusionauth.client.FusionAuthClient;
 import io.fusionauth.domain.User;
 import org.junit.Before;
@@ -47,5 +48,13 @@ class UserServiceTest {
         List<User> user = UserService.findUsersForCampaign("Campaign 1");
         assertEquals(2, user.size());
     }
+
+    @Test
+    public void testCampaignAddition(){
+        // [data => {transfomers: [broadcast, formID]}]
+        service.staticClient = client1;
+        CampaignConsumer.processMessage("897fb6ea-cb07-4891-b714-1e86784ef610")
+    }
+
 
 }
