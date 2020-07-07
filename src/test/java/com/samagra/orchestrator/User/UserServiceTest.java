@@ -50,10 +50,10 @@ class UserServiceTest {
     }
 
     @Test
-    public void testCampaignAddition(){
+    public void testCampaignAddition() throws Exception {
         // [data => {transfomers: [broadcast, formID]}]
         service.staticClient = client1;
-        CampaignConsumer.processMessage("897fb6ea-cb07-4891-b714-1e86784ef610")
+        CampaignConsumer.processMessage("897fb6ea-cb07-4891-b714-1e86784ef610");
     }
 
 

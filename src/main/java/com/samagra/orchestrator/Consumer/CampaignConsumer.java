@@ -70,7 +70,6 @@ public class CampaignConsumer {
         Transformer transformer = new Transformer(transformerID, hashMap);
         ArrayList<Transformer> transformers = new ArrayList<>();
         transformers.add(0, transformer);
-        new XMessage();
         return XMessage.builder().app(campaignID).channelURI(channelURI).
                 campaignStage(new CampaignStage(0, CampaignStage.State.STARTING)).providerURI("Gupshup").
                 timestamp(System.currentTimeMillis()).transformers(transformers).build();
