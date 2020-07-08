@@ -30,7 +30,7 @@ public class CampaignConsumer {
     @Autowired
     public CommonProducer kafkaProducer;
 
-    @KafkaListener(id = "orchestrator", topics = "campaign")
+    @KafkaListener(id = "campaign", topics = "campaign")
     public void consumeMessage(String campaignID) throws Exception {
         XMessage xMessage = processMessage(campaignID);
         kafkaProducer.send(TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()), xMessage.toXML());
@@ -68,8 +68,13 @@ public class CampaignConsumer {
         ArrayList<Transformer> transformers = new ArrayList<>();
         transformers.add(0, transformer);
         new XMessage();
-        return XMessage.builder().app(campaignID).channelURI(channelURI).
-                campaignStage(new CampaignStage(0, CampaignStage.State.STARTING)).providerURI("Gupshup").
-                timestamp(System.currentTimeMillis()).transformers(transformers).build();
+        return XMessage.builder()
+                .app(campaignID)
+                .channelURI(channelURI)
+                .campaignStage(new CampaignStage(0, CampaignStage.State.STARTING))
+                .providerURI("Gupshup")
+                .timestamp(System.currentTimeMillis())
+                .transformers(transformers)
+                .build();
     }
 }

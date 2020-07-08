@@ -19,7 +19,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EntityScan(basePackages = {"messagerosa.dao", "com.samagra.orchestrator"})
 @PropertySource("application-messagerosa.properties")
 @PropertySource("application.properties")
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
+@SpringBootApplication()
 public class OrchestratorApplication {
 
     public static void main(String[] args) {

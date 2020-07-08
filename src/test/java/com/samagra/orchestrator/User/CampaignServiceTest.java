@@ -36,7 +36,7 @@ public class CampaignServiceTest {
     @Test
     public void testRetrieveApplicationData() throws Exception {
         service.staticClient = client1;
-        Application application = CampaignService.getCampaignFromID("897fb6ea-cb07-4891-b714-1e86784ef610");
+        Application application = new CampaignService().getCampaignFromID("897fb6ea-cb07-4891-b714-1e86784ef610");
         ArrayList<String> transformers = (ArrayList)application.data.get("transformers");
         Assert.assertEquals("The strings didn't match for the expected and actual transformers", "Broadcast::SMS_1", transformers.get(0));
     }
