@@ -5,7 +5,6 @@ import com.samagra.orchestrator.Publisher.CommonProducer;
 import com.samagra.orchestrator.User.CampaignService;
 import com.samagra.orchestrator.User.UserService;
 import io.fusionauth.domain.Application;
-import liquibase.pro.packaged.S;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.*;
 import messagerosa.dao.XMessageDAO;
@@ -27,13 +26,11 @@ import java.util.HashMap;
 public class CampaignConsumer {
 
     private static final String SMS_BROADCAST_IDENTIFIER = "Broadcast";
-    @Autowired
-    public XMessageRepo xmsgRepo;
 
     @Autowired
     public CommonProducer kafkaProducer;
 
-    @KafkaListener(id = "orchestrator", topics = "${campaign}")
+    @KafkaListener(id = "campaign", topics = "campaign")
     public void consumeMessage(String campaignID) throws Exception {
         XMessage xMessage = processMessage(campaignID);
         kafkaProducer.send(TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()), xMessage.toXML());
@@ -70,8 +67,14 @@ public class CampaignConsumer {
         Transformer transformer = new Transformer(transformerID, hashMap);
         ArrayList<Transformer> transformers = new ArrayList<>();
         transformers.add(0, transformer);
-        return XMessage.builder().app(campaignID).channelURI(channelURI).
-                campaignStage(new CampaignStage(0, CampaignStage.State.STARTING)).providerURI("Gupshup").
-                timestamp(System.currentTimeMillis()).transformers(transformers).build();
+        new XMessage();
+        return XMessage.builder()
+                .app(campaignID)
+                .channelURI(channelURI)
+                .conversationStage(new ConversationStage(0, ConversationStage.State.STARTING))
+                .providerURI("Gupshup")
+                .timestamp(System.currentTimeMillis())
+                .transformers(transformers)
+                .build();
     }
 }
