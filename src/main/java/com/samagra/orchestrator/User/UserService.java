@@ -10,6 +10,7 @@ import io.fusionauth.domain.api.UserResponse;
 import io.fusionauth.domain.api.user.SearchRequest;
 import io.fusionauth.domain.api.user.SearchResponse;
 import io.fusionauth.domain.search.UserSearchCriteria;
+import messagerosa.core.model.SenderReceiverInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
@@ -77,5 +78,9 @@ public class UserService {
             }
         }
         return new ArrayList<>();
+    }
+
+    public static SenderReceiverInfo getInfoForUser(){
+        return null;
     }
 }

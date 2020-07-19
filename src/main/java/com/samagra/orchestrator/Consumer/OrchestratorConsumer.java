@@ -52,7 +52,7 @@ public class OrchestratorConsumer {
         XMessageDAO lastMessage = xmsgRepo.findAllByUserId(id).get(0);
 
         SenderReceiverInfo from = new SenderReceiverInfo();
-        from.setCampaignId(msg.getApp());
+        from.setCampaignID(msg.getApp());
         from.setUserID(id);
         // Add user
         msg.setFrom(from);

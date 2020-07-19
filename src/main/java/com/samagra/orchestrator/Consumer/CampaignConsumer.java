@@ -1,23 +1,14 @@
 package com.samagra.orchestrator.Consumer;
 
-import com.samagra.orchestrator.Drools.DroolsBeanFactory;
 import com.samagra.orchestrator.Publisher.CommonProducer;
 import com.samagra.orchestrator.User.CampaignService;
-import com.samagra.orchestrator.User.UserService;
 import io.fusionauth.domain.Application;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.*;
-import messagerosa.dao.XMessageDAO;
-import messagerosa.dao.XMessageRepo;
-import messagerosa.xml.XMessageParser;
-import org.kie.api.io.Resource;
-import org.kie.api.runtime.KieSession;
-import org.kie.internal.io.ResourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -33,6 +24,7 @@ public class CampaignConsumer {
     @KafkaListener(id = "campaign", topics = "campaign")
     public void consumeMessage(String campaignID) throws Exception {
         XMessage xMessage = processMessage(campaignID);
+        log.info("Pushing to : "+ TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()));
         kafkaProducer.send(TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()), xMessage.toXML());
     }
 
@@ -62,6 +54,7 @@ public class CampaignConsumer {
             key = "Form";
             value = transformerDetails.get(0).split("::")[1];
         }
+
         HashMap<String, String> hashMap = new HashMap();
         hashMap.put(key, value);
         Transformer transformer = new Transformer(transformerID, hashMap);
