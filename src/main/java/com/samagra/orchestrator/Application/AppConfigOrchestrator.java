@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableAutoConfiguration
-public class AppConfiguration {
+public class AppConfigOrchestrator {
 
     @Bean
     public FusionAuthClient AuthServerConnection() {
