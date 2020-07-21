@@ -25,7 +25,7 @@ public class CampaignConsumer {
     public void consumeMessage(String campaignID) throws Exception {
         XMessage xMessage = processMessage(campaignID);
         log.info("Pushing to : "+ TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()));
-        kafkaProducer.send(TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()), xMessage.toXML());
+        kafkaProducer.send("CampaignMessageMultiplexer", xMessage.toXML());
     }
 
     /**
@@ -62,7 +62,7 @@ public class CampaignConsumer {
         transformers.add(0, transformer);
         new XMessage();
         return XMessage.builder()
-                .app(campaignID)
+                .app(campaignDetails.name)
                 .channelURI(channelURI)
                 .conversationStage(new ConversationStage(0, ConversationStage.State.STARTING))
                 .providerURI("Gupshup")

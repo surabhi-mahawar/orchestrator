@@ -7,10 +7,7 @@ import io.fusionauth.domain.Application;
 import io.fusionauth.domain.api.ApplicationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class CampaignService {
 
@@ -52,5 +49,33 @@ public class CampaignService {
             throw  exception;
         }
         return null;
+    }
+
+    /**
+     * Retrieve Campaign Params From its Name
+     * @param campaignName - Campaign Name
+     * @return Application
+     * @throws Exception Error Exception, in failure in Network request.
+     */
+    public static Application getCampaignFromName(String campaignName) throws Exception {
+        List<Application> applications = new ArrayList<>();
+        FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
+        ClientResponse<ApplicationResponse, Void> response = staticClient.retrieveApplications();
+        if (response.wasSuccessful()) {
+            applications = response.successResponse.applications;
+        } else if (response.exception != null) {
+            Exception exception = response.exception;
+        }
+
+
+        Application currentApplication = null;
+        if(applications.size() > 0){
+            for(Application application: applications){
+                if(application.name.equals(campaignName)){
+                    currentApplication = application;
+                }
+            }
+        }
+        return currentApplication;
     }
 }

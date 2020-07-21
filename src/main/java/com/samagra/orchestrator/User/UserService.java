@@ -10,13 +10,14 @@ import io.fusionauth.domain.api.UserResponse;
 import io.fusionauth.domain.api.user.SearchRequest;
 import io.fusionauth.domain.api.user.SearchResponse;
 import io.fusionauth.domain.search.UserSearchCriteria;
+import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.SenderReceiverInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
 
-
+@Slf4j
 public class UserService {
 
     @Autowired
@@ -44,37 +45,22 @@ public class UserService {
         return null;
     }
 
-    public static List<User> findUsersForCampaign(String campaignID){
+    public static List<User> findUsersForCampaign(String campaignName) throws Exception {
 
-        List<Application> applications = new ArrayList<>();
-        ClientResponse<ApplicationResponse, Void> response = staticClient.retrieveApplications();
-        if (response.wasSuccessful()) {
-            applications = response.successResponse.applications;
-        } else if (response.exception != null) {
-            Exception exception = response.exception;
-        }
-
-
-        Application currentApplication = null;
-        if(applications.size() > 0){
-            for(Application application: applications){
-                if(application.name.equals(campaignID)){
-                    currentApplication = application;
-                }
-            }
-        }
-
+        Application currentApplication = CampaignService.getCampaignFromName(campaignName);
+        FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
         if(currentApplication != null){
             UserSearchCriteria usc = new UserSearchCriteria();
             usc.queryString = "(registrations.applicationId: " + currentApplication.id.toString() + ")";
             SearchRequest sr = new SearchRequest(usc);
             ClientResponse<SearchResponse, Errors> cr = staticClient.searchUsersByQueryString(sr);
 
-            if (response.wasSuccessful()) {
+            if (cr.wasSuccessful()) {
                 return cr.successResponse.users;
-            } else if (response.exception != null) {
+            } else if (cr.exception != null) {
                 // Exception Handling
-                Exception exception = response.exception;
+                Exception exception = cr.exception;
+                log.error("Exception in getting users for campaign: " + exception.toString());
             }
         }
         return new ArrayList<>();

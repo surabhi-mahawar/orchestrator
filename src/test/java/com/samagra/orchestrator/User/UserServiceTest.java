@@ -44,7 +44,7 @@ class UserServiceTest {
     }
 
     @Test
-    public void testFindUsersForCampaign(){
+    public void testFindUsersForCampaign() throws Exception {
         service.staticClient = client1;
         List<User> user = UserService.findUsersForCampaign("Campaign 1");
         assertEquals(2, user.size());
