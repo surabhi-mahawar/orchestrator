@@ -48,12 +48,12 @@ public class OrchestratorConsumer {
         XMessage msg = XMessageParser.parse(new ByteArrayInputStream(message.getBytes()));
 
         // Adding additional context data to the system.
-        String id = UserService.findByEmail(msg.getFrom().getUserID()).id.toString();
-        XMessageDAO lastMessage = xmsgRepo.findAllByUserId(id).get(0);
-
-        SenderReceiverInfo from = new SenderReceiverInfo();
+        String id = UserService.findByPhone(msg.getFrom().getUserID()).id.toString();
+        XMessageDAO lastMessage = xmsgRepo.findAllByFromIdOrderByTimestampDesc(msg.getFrom().getUserID()).get(0);
+        SenderReceiverInfo from = msg.getFrom();
         from.setCampaignID(msg.getApp());
-        from.setUserID(id);
+        from.setUserID(msg.getFrom().getUserID());
+
         // Add user
         msg.setFrom(from);
 
@@ -65,6 +65,9 @@ public class OrchestratorConsumer {
         kSession.fireAllRules();
 
         // Send message to "transformer"
-        kafkaProducer.send(TransformerRegistry.getName(msg.getTransformers().get(0).getId()), msg.toXML());
+        //TODO Do this through orchestrator
+        if(msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)){
+            kafkaProducer.send("Form1", msg.toXML());
+        }
     }
 }

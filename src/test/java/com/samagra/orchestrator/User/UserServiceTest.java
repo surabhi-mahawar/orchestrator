@@ -38,14 +38,12 @@ class UserServiceTest {
 
     @Test
     public void testFindByEmail(){
-        service.staticClient = client1;
         User user = UserService.findByEmail(email);
         assertEquals("4ee2ab81-6c3f-460b-94b2-de49cf55f27f", user.id.toString());
     }
 
     @Test
     public void testFindUsersForCampaign() throws Exception {
-        service.staticClient = client1;
         List<User> user = UserService.findUsersForCampaign("Campaign 1");
         assertEquals(2, user.size());
     }
@@ -53,8 +51,6 @@ class UserServiceTest {
     @SneakyThrows
     @Test
     public void testCampaignAddition() throws Exception {
-        // [data => {transfomers: [broadcast, formID]}]
-        service.staticClient = client1;
         CampaignConsumer.processMessage("897fb6ea-cb07-4891-b714-1e86784ef610");
     }
 }

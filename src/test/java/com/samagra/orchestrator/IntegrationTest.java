@@ -22,8 +22,21 @@ public class IntegrationTest {
     public void testChangeInChannel() throws Exception {
         XMessage xMessage = new XMessage();
         xMessage.setMessageState(XMessage.MessageState.DELIVERED);
-        xMessage.setChannel("WhatsApp");
+        xMessage.setChannelURI("WhatsApp");
+        xMessage.setApp("ResumeBuilder");
         xMessage.setTimestamp((long) 1592900000);
+        System.out.println(xMessage.secondsSinceLastMessage());
+        kSession.insert(xMessage);
+        kSession.fireAllRules();
+        System.out.println(xMessage.getTransformers());
+        System.out.println(xMessage.toXML());
+    }
+
+    @Test
+    public void testForTransformer() throws Exception {
+        XMessage xMessage = new XMessage();
+        xMessage.setMessageState(XMessage.MessageState.REPLIED);
+        xMessage.setApp("Test");
         System.out.println(xMessage.secondsSinceLastMessage());
         kSession.insert(xMessage);
         kSession.fireAllRules();

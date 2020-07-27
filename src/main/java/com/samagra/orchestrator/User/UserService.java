@@ -23,15 +23,8 @@ public class UserService {
     @Autowired
     public FusionAuthClient client;
 
-    static FusionAuthClient staticClient;
-
-    @Autowired
-    public void setStaticClient(FusionAuthClient client) {
-        UserService.staticClient = client;
-    }
-
-
     public static User findByEmail(String email) {
+        FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
         ClientResponse<UserResponse, Errors> response = staticClient.retrieveUserByEmail(email);
         if (response.wasSuccessful()) {
             return response.successResponse.user;
@@ -42,6 +35,23 @@ public class UserService {
             Exception exception = response.exception;
         }
 
+        return null;
+    }
+
+    public static User findByPhone(String phone) {
+        FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
+        UserSearchCriteria usc = new UserSearchCriteria();
+        usc.queryString = "*" + phone + "*";
+        SearchRequest sr = new SearchRequest(usc);
+        ClientResponse<SearchResponse, Errors> cr = staticClient.searchUsersByQueryString(sr);
+
+        if (cr.wasSuccessful()) {
+            return cr.successResponse.users.get(0);
+        } else if (cr.exception != null) {
+            // Exception Handling
+            Exception exception = cr.exception;
+            log.error("Exception in getting users for campaign: " + exception.toString());
+        }
         return null;
     }
 
