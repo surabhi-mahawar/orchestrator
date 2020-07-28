@@ -1,25 +1,15 @@
 package com.samagra.orchestrator.User;
 
 import com.inversoft.rest.ClientResponse;
-import com.samagra.orchestrator.Consumer.CampaignConsumer;
 import io.fusionauth.client.FusionAuthClient;
 import io.fusionauth.domain.Application;
 import io.fusionauth.domain.api.ApplicationResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+@Component
 public class CampaignService {
-
-    @Autowired
-    public FusionAuthClient client;
-
-    static FusionAuthClient staticClient;
-
-    @Autowired
-    public void setStaticClient(FusionAuthClient client) {
-        CampaignService.staticClient = client;
-    }
 
     /**
      * Retrieve Campaign Params From its Identifier

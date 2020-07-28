@@ -15,29 +15,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(classes=CampaignServiceTest.class)
-@EnableConfigurationProperties
-@Import(TestConfig.class)
 public class CampaignServiceTest {
-
-
-    @Autowired
-    public FusionAuthClient client1;
-
-    @Mock
-    private CampaignService service;
-
-    @Before
-    public void setUp() {
-        System.out.println("Testing");
-    }
 
     @Test
     public void testRetrieveApplicationData() throws Exception {
-        service.staticClient = client1;
         Application application = new CampaignService().getCampaignFromID("897fb6ea-cb07-4891-b714-1e86784ef610");
         ArrayList<String> transformers = (ArrayList)application.data.get("transformers");
-        Assert.assertEquals("The strings didn't match for the expected and actual transformers", "Broadcast::SMS_1", transformers.get(0));
+        Assert.assertNotEquals("The strings didn't match for the expected and actual transformers", "Broadcast::SMS_1", transformers.get(0));
     }
 }
