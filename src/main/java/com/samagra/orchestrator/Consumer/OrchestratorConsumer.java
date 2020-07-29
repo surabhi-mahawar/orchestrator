@@ -41,9 +41,8 @@ public class OrchestratorConsumer {
     @KafkaListener(id = "orchestrator", topics = "${inboundProcessed}")
     public void consumeMessage(String message) throws Exception {
         System.out.println(message);
-        Resource resource = ResourceFactory.newClassPathResource("com/samagra/orchestrator/Drools/OrchestratorRules.xlsx", getClass());
+        Resource resource = ResourceFactory.newClassPathResource("OrchestratorRules.xlsx", getClass());
         kSession = new DroolsBeanFactory().getKieSession(resource);
-        System.out.println(new DroolsBeanFactory().getDrlFromExcel("com/samagra/orchestrator/Drools/OrchestratorRules.xlsx"));
 
         XMessage msg = XMessageParser.parse(new ByteArrayInputStream(message.getBytes()));
 

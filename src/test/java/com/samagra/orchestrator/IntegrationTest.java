@@ -13,9 +13,9 @@ public class IntegrationTest {
 
     @Before
     public void setup() {
-        Resource resource = ResourceFactory.newClassPathResource("com/samagra/orchestrator/Drools/OrchestratorRules.xlsx", getClass());
+        Resource resource = ResourceFactory.newClassPathResource("OrchestratorRules.xlsx", getClass());
         kSession = new DroolsBeanFactory().getKieSession(resource);
-        System.out.println(new DroolsBeanFactory().getDrlFromExcel("com/samagra/orchestrator/Drools/OrchestratorRules.xlsx"));
+        System.out.println(new DroolsBeanFactory().getDrlFromExcel("OrchestratorRules.xlsx"));
     }
 
     @Test
