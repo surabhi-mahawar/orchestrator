@@ -38,7 +38,7 @@ public class OrchestratorConsumer {
     @Autowired
     public CommonProducer kafkaProducer;
 
-    @KafkaListener(id = "orchestrator", topics = "${inboundProcessed}")
+    @KafkaListener(id = "orchestrator1", topics = "${inboundProcessed}")
     public void consumeMessage(String message) throws Exception {
         System.out.println(message);
         Resource resource = ResourceFactory.newClassPathResource("OrchestratorRules.xlsx", getClass());
