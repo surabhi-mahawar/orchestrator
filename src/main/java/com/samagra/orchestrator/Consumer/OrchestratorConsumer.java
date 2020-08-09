@@ -40,7 +40,7 @@ public class OrchestratorConsumer {
 
     @KafkaListener(id = "orchestrator1", topics = "${inboundProcessed}")
     public void consumeMessage(String message) throws Exception {
-        System.out.println(message);
+        log.info("incoming message {}",message);
         Resource resource = ResourceFactory.newClassPathResource("OrchestratorRules.xlsx", getClass());
         kSession = new DroolsBeanFactory().getKieSession(resource);
 
