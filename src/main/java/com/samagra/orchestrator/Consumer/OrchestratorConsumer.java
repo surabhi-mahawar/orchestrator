@@ -48,6 +48,7 @@ public class OrchestratorConsumer {
 
         // Adding additional context data to the system.
         String id = UserService.findByPhone(msg.getFrom().getUserID()).id.toString();
+        XMessageDAO lastMessageReplied = xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(msg.getFrom().getUserID(), "REPLIED");
         XMessageDAO lastMessage = xmsgRepo.findAllByFromIdOrderByTimestampDesc(msg.getFrom().getUserID()).get(0);
         SenderReceiverInfo from = msg.getFrom();
         from.setCampaignID(msg.getApp());
@@ -66,7 +67,7 @@ public class OrchestratorConsumer {
         // Send message to "transformer"
         //TODO Do this through orchestrator
         if(msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)){
-            kafkaProducer.send("Form1", msg.toXML());
+            kafkaProducer.send("Form2", msg.toXML());
         }
     }
 }

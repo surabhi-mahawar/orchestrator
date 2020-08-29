@@ -42,7 +42,7 @@ public class UserService {
         SearchRequest sr = new SearchRequest(usc);
         ClientResponse<SearchResponse, Errors> cr = staticClient.searchUsersByQueryString(sr);
 
-        if (cr.wasSuccessful()) {
+        if (cr.wasSuccessful() && cr.successResponse.users.size() > 0) {
             return cr.successResponse.users.get(0);
         } else if (cr.exception != null) {
             // Exception Handling
