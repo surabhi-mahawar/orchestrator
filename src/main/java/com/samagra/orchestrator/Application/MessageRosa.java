@@ -25,10 +25,8 @@ public class MessageRosa {
 
     @SneakyThrows
     @GetMapping("/getLastMessage")
-    public XMessageDAO greeting(@RequestParam(value = "userID", required = false) String userID,
-                                @RequestParam(value = "messageType", required = false) String messageType) {
-
-        return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(userID, messageType);
+    public XMessageDAO greeting(@RequestParam(value = "replyId") String replyId) {
+        return xmsgRepo.findFirstByCauseIdAndMessageStateOrderByTimestampDesc(replyId, "REPLIED");
     }
 
     @SneakyThrows

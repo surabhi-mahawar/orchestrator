@@ -47,8 +47,6 @@ public class OrchestratorConsumer {
         XMessage msg = XMessageParser.parse(new ByteArrayInputStream(message.getBytes()));
 
         // Adding additional context data to the system.
-        String id = UserService.findByPhone(msg.getFrom().getUserID()).id.toString();
-        XMessageDAO lastMessageReplied = xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(msg.getFrom().getUserID(), "REPLIED");
         XMessageDAO lastMessage = xmsgRepo.findAllByFromIdOrderByTimestampDesc(msg.getFrom().getUserID()).get(0);
         SenderReceiverInfo from = msg.getFrom();
         from.setCampaignID(msg.getApp());
@@ -58,7 +56,7 @@ public class OrchestratorConsumer {
         msg.setFrom(from);
 
         // Add previous messageID
-        msg.setLastMessageID(lastMessage.getWhatsappMessageId());
+        msg.setLastMessageID(lastMessage.getMessageId());
 
         // Assign Transformer
         kSession.insert(msg);
