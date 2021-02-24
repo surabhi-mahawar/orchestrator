@@ -30,7 +30,8 @@ import java.util.ArrayList;
 @Component
 public class OrchestratorConsumer {
 
-    private KieSession kSession;
+    @Autowired
+    public KieSession kSession;
 
     @Autowired
     public XMessageRepo xmsgRepo;
@@ -40,14 +41,15 @@ public class OrchestratorConsumer {
 
     @KafkaListener(id = "orchestrator1", topics = "${inboundProcessed}")
     public void consumeMessage(String message) throws Exception {
-        log.info("incoming message {}",message);
-        Resource resource = ResourceFactory.newClassPathResource("OrchestratorRules.xlsx", getClass());
-        kSession = new DroolsBeanFactory().getKieSession(resource);
-
+        long startTime = System.nanoTime();
         XMessage msg = XMessageParser.parse(new ByteArrayInputStream(message.getBytes()));
 
         // Adding additional context data to the system.
-        XMessageDAO lastMessage = xmsgRepo.findAllByFromIdOrderByTimestampDesc(msg.getFrom().getUserID()).get(0);
+        XMessageDAO lastMessage = xmsgRepo.findFirstByFromIdOrderByTimestampDesc(msg.getFrom().getUserID());
+        long endTime1 = System.nanoTime();
+        long duration1 = (endTime1 - startTime);
+        log.info("Total time spent in processing message CP-1: " + duration1 / 1000000);
+        startTime = System.nanoTime();
         SenderReceiverInfo from = msg.getFrom();
         from.setCampaignID(msg.getApp());
         from.setUserID(msg.getFrom().getUserID());
@@ -66,6 +68,9 @@ public class OrchestratorConsumer {
         //TODO Do this through orchestrator
         if(msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)){
             kafkaProducer.send("Form2", msg.toXML());
+            long endTime = System.nanoTime();
+            long duration = (endTime - startTime);
+            log.info("Total time spent in processing message CP-2: " + duration / 1000000);
         }
     }
 }

@@ -38,16 +38,25 @@ public class CampaignConsumer {
     public static XMessage processMessage(String campaignID) throws Exception {
         // Get campaign ID and get campaign details {data: transformers [broadcast(SMS), <formID>(Whatsapp)]}
         Application campaignDetails = CampaignService.getCampaignFromID(campaignID);
-        ArrayList<HashMap<String, String>> transformerDetails = (ArrayList) campaignDetails.data.get("parts");
+        ArrayList<HashMap<String, Object>> transformerDetails = (ArrayList) campaignDetails.data.get("parts");
 
         // Create a new campaign xMessage
         XMessagePayload payload = XMessagePayload.builder()
-                .text(transformerDetails.get(0).get("msg"))
+                .text((String) transformerDetails.get(0).get("msg"))
                 .build();
 
-        SenderReceiverInfo to = SenderReceiverInfo.builder()
-                .userID((String) campaignDetails.data.get("group"))
-                .build();
+        SenderReceiverInfo to;
+
+        try{
+             to = SenderReceiverInfo.builder()
+                    .userID((String) campaignDetails.data.get("group"))
+                    .build();
+        }catch (Exception e){
+            log.info("Multiple groups found => Adding those to groups field rather than userIDs");
+            to = SenderReceiverInfo.builder()
+                    .groups((ArrayList<String>) campaignDetails.data.get("group"))
+                    .build();
+        }
 
         Transformer broadcast = Transformer.builder()
                 .id("1")
@@ -55,6 +64,14 @@ public class CampaignConsumer {
         ArrayList<Transformer> transformers = new ArrayList<>();
         transformers.add(broadcast);
 
+
+
+        String userServer = "";
+        try{
+            userServer = (String) campaignDetails.data.get("users");
+        }catch (Exception e){
+
+        }
         Map<String, String> metadata = new HashMap<>();
         metadata.put("senderID", "HPGOVT");
         SenderReceiverInfo from = SenderReceiverInfo.builder()
@@ -62,15 +79,29 @@ public class CampaignConsumer {
                 .meta(metadata)
                 .build();
 
+        Map<String, String> metadata2 = new HashMap<>();
+        metadata2.put("userServer", userServer);
+        to.setMeta(metadata2);
+
+        XMessage.MessageType messageType;
+        try{
+            if((Boolean) transformerDetails.get(0).get("isButtonType")){
+                messageType = XMessage.MessageType.HSM_WITH_BUTTON;
+            }else messageType = XMessage.MessageType.HSM;
+        }catch (Exception e){
+            messageType = XMessage.MessageType.HSM;
+        }
+
         return XMessage.builder()
                 .app(campaignDetails.name)
-                .channelURI(transformerDetails.get(0).get("channel"))
-                .providerURI(transformerDetails.get(0).get("provider"))
+                .channelURI((String) transformerDetails.get(0).get("channel"))
+                .providerURI((String) transformerDetails.get(0).get("provider"))
                 .payload(payload)
                 .conversationStage(new ConversationStage(0, ConversationStage.State.STARTING))
                 .timestamp(System.currentTimeMillis())
                 .transformers(transformers)
                 .to(to)
+                .messageType(messageType)
                 .from(from)
                 .build();
     }
