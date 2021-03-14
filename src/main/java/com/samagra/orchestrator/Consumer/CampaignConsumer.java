@@ -64,24 +64,12 @@ public class CampaignConsumer {
         ArrayList<Transformer> transformers = new ArrayList<>();
         transformers.add(broadcast);
 
-
-
-        String userServer = "";
-        try{
-            userServer = (String) campaignDetails.data.get("users");
-        }catch (Exception e){
-
-        }
         Map<String, String> metadata = new HashMap<>();
         metadata.put("senderID", "HPGOVT");
         SenderReceiverInfo from = SenderReceiverInfo.builder()
                 .userID("hpgovt-hpssa")
                 .meta(metadata)
                 .build();
-
-        Map<String, String> metadata2 = new HashMap<>();
-        metadata2.put("userServer", userServer);
-        to.setMeta(metadata2);
 
         XMessage.MessageType messageType;
         try{

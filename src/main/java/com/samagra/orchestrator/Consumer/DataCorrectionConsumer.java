@@ -1,8 +1,6 @@
 package com.samagra.orchestrator.Consumer;
 
-import com.samagra.orchestrator.Publisher.CommonProducer;
 import messagerosa.core.model.XMessage;
-import messagerosa.dao.XMessageDAO;
 import messagerosa.dao.XMessageRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;

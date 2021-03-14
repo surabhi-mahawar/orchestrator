@@ -1,30 +1,18 @@
 package com.samagra.orchestrator.Consumer;
 
-import com.samagra.orchestrator.Drools.DroolsBeanFactory;
 import com.samagra.orchestrator.Publisher.CommonProducer;
-import com.samagra.orchestrator.User.UserService;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.SenderReceiverInfo;
-import messagerosa.core.model.Transformer;
-import messagerosa.core.model.TransformerRegistry;
 import messagerosa.dao.XMessageDAO;
 import messagerosa.dao.XMessageRepo;
 import messagerosa.xml.XMessageParser;
-import org.kie.api.io.Resource;
 import org.kie.api.runtime.KieSession;
-import org.kie.internal.io.ResourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 import messagerosa.core.model.XMessage;
-import messagerosa.xml.XMessageParser;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
 
 @Slf4j
 @Component

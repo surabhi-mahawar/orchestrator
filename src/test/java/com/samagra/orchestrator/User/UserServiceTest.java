@@ -1,19 +1,9 @@
 package com.samagra.orchestrator.User;
 
 import com.samagra.orchestrator.Consumer.CampaignConsumer;
-import io.fusionauth.client.FusionAuthClient;
 import io.fusionauth.domain.User;
 import lombok.SneakyThrows;
-import org.junit.Before;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
 
