@@ -55,7 +55,7 @@ public class OrchestratorConsumer {
         // Send message to "transformer"
         //TODO Do this through orchestrator
         if(msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)){
-            kafkaProducer.send("Form2", msg.toXML());
+            kafkaProducer.send("com.odk.SamagraODKAgg", msg.toXML());
             long endTime = System.nanoTime();
             long duration = (endTime - startTime);
             log.info("Total time spent in processing message CP-2: " + duration / 1000000);
