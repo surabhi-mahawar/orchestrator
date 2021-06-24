@@ -11,14 +11,19 @@ import io.fusionauth.domain.api.user.SearchResponse;
 import io.fusionauth.domain.search.UserSearchCriteria;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.SenderReceiverInfo;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
+@Service
 @Slf4j
 public class UserService {
+
+    @Autowired
+    public static CampaignService campaignService;
 
     public static User findByEmail(String email) {
         FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
@@ -54,7 +59,7 @@ public class UserService {
 
     public static List<User> findUsersForCampaign(String campaignName) throws Exception {
 
-        Application currentApplication = CampaignService.getCampaignFromName(campaignName);
+        Application currentApplication = campaignService.getCampaignFromName(campaignName);
         FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
         if(currentApplication != null){
             UserSearchCriteria usc = new UserSearchCriteria();

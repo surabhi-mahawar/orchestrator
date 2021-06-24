@@ -26,6 +26,9 @@ public class CampaignConsumer {
     @Autowired
     public CommonProducer kafkaProducer;
 
+    @Autowired
+    public static CampaignService campaignService;
+
     @KafkaListener(id = "campaign", topics = "campaign")
     public void consumeMessage(String campaignID) throws Exception {
         XMessage xMessage = processMessage(campaignID);
@@ -41,7 +44,7 @@ public class CampaignConsumer {
      */
     public static XMessage processMessage(String campaignID) throws Exception {
         // Get campaign ID and get campaign details {data: transformers [broadcast(SMS), <formID>(Whatsapp)]}
-        JsonNode campaignDetails = CampaignService.getCampaignFromID(campaignID).get("data");
+        JsonNode campaignDetails = campaignService.getCampaignFromID(campaignID).get("data");
         ObjectMapper mapper = new ObjectMapper();
         JsonNode adapter = campaignDetails.findValues("logic").get(0).get(0).get("adapter");
 
