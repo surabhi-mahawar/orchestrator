@@ -1,5 +1,9 @@
 package com.samagra.orchestrator.Consumer;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.samagra.orchestrator.Publisher.CommonProducer;
 import com.samagra.orchestrator.User.CampaignService;
 import io.fusionauth.domain.Application;
@@ -26,7 +30,7 @@ public class CampaignConsumer {
     public void consumeMessage(String campaignID) throws Exception {
         XMessage xMessage = processMessage(campaignID);
         log.info("Pushing to : "+ TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()));
-        kafkaProducer.send("BroadcastTransformer", xMessage.toXML());
+        kafkaProducer.send("com.odk.broadcast", xMessage.toXML());
     }
 
     /**
@@ -37,26 +41,17 @@ public class CampaignConsumer {
      */
     public static XMessage processMessage(String campaignID) throws Exception {
         // Get campaign ID and get campaign details {data: transformers [broadcast(SMS), <formID>(Whatsapp)]}
-        Application campaignDetails = CampaignService.getCampaignFromID(campaignID);
-        ArrayList<HashMap<String, Object>> transformerDetails = (ArrayList) campaignDetails.data.get("parts");
+        JsonNode campaignDetails = CampaignService.getCampaignFromID(campaignID).get("data");
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode adapter = campaignDetails.findValues("logic").get(0).get(0).get("adapter");
 
         // Create a new campaign xMessage
-        XMessagePayload payload = XMessagePayload.builder()
-                .text((String) transformerDetails.get(0).get("msg"))
+        XMessagePayload payload = XMessagePayload.builder().text("").build();
+
+        String userSegmentName = ((ArrayNode) campaignDetails.get("userSegments")).get(0).get("name").asText();
+        SenderReceiverInfo to = SenderReceiverInfo.builder()
+                .userID(userSegmentName)
                 .build();
-
-        SenderReceiverInfo to;
-
-        try{
-             to = SenderReceiverInfo.builder()
-                    .userID((String) campaignDetails.data.get("group"))
-                    .build();
-        }catch (Exception e){
-            log.info("Multiple groups found => Adding those to groups field rather than userIDs");
-            to = SenderReceiverInfo.builder()
-                    .groups((ArrayList<String>) campaignDetails.data.get("group"))
-                    .build();
-        }
 
         Transformer broadcast = Transformer.builder()
                 .id("1")
@@ -65,25 +60,17 @@ public class CampaignConsumer {
         transformers.add(broadcast);
 
         Map<String, String> metadata = new HashMap<>();
-        metadata.put("senderID", "HPGOVT");
         SenderReceiverInfo from = SenderReceiverInfo.builder()
-                .userID("hpgovt-hpssa")
+                .userID("admin")
                 .meta(metadata)
                 .build();
 
-        XMessage.MessageType messageType;
-        try{
-            if((Boolean) transformerDetails.get(0).get("isButtonType")){
-                messageType = XMessage.MessageType.HSM_WITH_BUTTON;
-            }else messageType = XMessage.MessageType.HSM;
-        }catch (Exception e){
-            messageType = XMessage.MessageType.HSM;
-        }
+        XMessage.MessageType messageType = XMessage.MessageType.BROADCAST_TEXT;
 
         return XMessage.builder()
-                .app(campaignDetails.name)
-                .channelURI((String) transformerDetails.get(0).get("channel"))
-                .providerURI((String) transformerDetails.get(0).get("provider"))
+                .app(campaignDetails.get("name").asText())
+                .channelURI(adapter.get("channel").asText())
+                .providerURI(adapter.get("provider").asText())
                 .payload(payload)
                 .conversationStage(new ConversationStage(0, ConversationStage.State.STARTING))
                 .timestamp(System.currentTimeMillis())
