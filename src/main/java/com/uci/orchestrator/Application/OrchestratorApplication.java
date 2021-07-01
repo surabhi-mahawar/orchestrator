@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 @ComponentScan(basePackages = {"com.uci.orchestrator", "messagerosa","com.uci.utils"})
 @EnableReactiveCassandraRepositories("com.uci.dao")
-@EntityScan(basePackages = {"com.uci.dao.models", "com.samagra.orchestrator"})
+@EntityScan(basePackages = {"com.uci.dao.models", "com.uci.orchestrator"})
 @PropertySource("application-messagerosa.properties")
 @PropertySource("application.properties")
 @SpringBootApplication()
