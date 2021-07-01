@@ -1,15 +1,14 @@
-package com.samagra.orchestrator.Consumer;
+package com.uci.orchestrator.Consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.samagra.orchestrator.Publisher.CommonProducer;
 import com.uci.dao.models.XMessageDAO;
 import com.uci.dao.repository.XMessageRepository;
 import com.uci.utils.BotService;
+import com.uci.utils.CommonProducer;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.SenderReceiverInfo;
 import messagerosa.xml.XMessageParser;
 import org.kie.api.runtime.KieSession;
-import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import messagerosa.core.model.XMessage;
@@ -20,7 +19,6 @@ import reactor.core.publisher.Mono;
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 

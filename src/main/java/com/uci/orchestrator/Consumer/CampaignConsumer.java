@@ -1,12 +1,11 @@
-package com.samagra.orchestrator.Consumer;
+package com.uci.orchestrator.Consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.samagra.orchestrator.Publisher.CommonProducer;
 import com.uci.utils.CampaignService;
+import com.uci.utils.CommonProducer;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.*;
 import org.springframework.beans.factory.annotation.Autowired;

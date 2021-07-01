@@ -1,4 +1,4 @@
-package com.samagra.orchestrator.Consumer;
+package com.uci.orchestrator.Consumer;
 
 import com.uci.dao.repository.XMessageRepository;
 import messagerosa.core.model.XMessage;

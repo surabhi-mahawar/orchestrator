@@ -1,6 +1,6 @@
-package com.samagra.orchestrator.Application;
+package com.uci.orchestrator.Application;
 
-import com.samagra.orchestrator.Drools.DroolsBeanFactory;
+import com.uci.orchestrator.Drools.DroolsBeanFactory;
 import io.fusionauth.client.FusionAuthClient;
 import org.kie.api.io.Resource;
 import org.kie.api.runtime.KieSession;

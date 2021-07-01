@@ -1,4 +1,4 @@
-package com.samagra.orchestrator.User;
+package com.uci.orchestrator.User;
 
 import io.fusionauth.client.FusionAuthClient;
 import org.springframework.boot.test.context.TestConfiguration;

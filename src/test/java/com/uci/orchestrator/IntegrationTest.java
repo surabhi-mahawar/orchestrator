@@ -1,6 +1,6 @@
-package com.samagra.orchestrator;
+package com.uci.orchestrator;
 
-import com.samagra.orchestrator.Drools.DroolsBeanFactory;
+import com.uci.orchestrator.Drools.DroolsBeanFactory;
 import messagerosa.core.model.XMessage;
 import org.junit.Before;
 import org.junit.Test;

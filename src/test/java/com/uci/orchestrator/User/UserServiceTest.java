@@ -1,6 +1,6 @@
-package com.samagra.orchestrator.User;
+package com.uci.orchestrator.User;
 
-import com.samagra.orchestrator.Consumer.CampaignConsumer;
+import com.uci.orchestrator.Consumer.CampaignConsumer;
 import io.fusionauth.domain.User;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;

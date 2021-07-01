@@ -1,4 +1,4 @@
-package com.samagra.orchestrator.User;
+package com.uci.orchestrator.User;
 
 import com.inversoft.error.Errors;
 import com.inversoft.rest.ClientResponse;

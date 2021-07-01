@@ -1,4 +1,4 @@
-package com.samagra.orchestrator.Application;
+package com.uci.orchestrator.Application;
 
 
 import com.uci.dao.models.XMessageDAO;

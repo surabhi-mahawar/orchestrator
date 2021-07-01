@@ -1,4 +1,4 @@
-package com.samagra.orchestrator.User;
+package com.uci.orchestrator.User;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.uci.utils.CampaignService;

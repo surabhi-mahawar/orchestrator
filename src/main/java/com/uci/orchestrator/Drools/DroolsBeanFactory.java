@@ -1,4 +1,4 @@
-package com.samagra.orchestrator.Drools;
+package com.uci.orchestrator.Drools;
 
 import org.drools.decisiontable.DecisionTableProviderImpl;
 import org.kie.api.KieServices;
