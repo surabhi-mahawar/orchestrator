@@ -1,13 +1,13 @@
 package com.samagra.orchestrator.Consumer;
 
+import com.uci.dao.repository.XMessageRepository;
 import messagerosa.core.model.XMessage;
-import messagerosa.dao.XMessageRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 
 public class DataCorrectionConsumer {
     @Autowired
-    public XMessageRepo xmsgRepo;
+    public XMessageRepository xmsgRepo;
 
     @KafkaListener(id = "datacorrection", topics = "${inboundProcessed}")
     public void consumeMessage(XMessage message) throws Exception {

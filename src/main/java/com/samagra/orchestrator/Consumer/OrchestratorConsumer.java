@@ -2,17 +2,19 @@ package com.samagra.orchestrator.Consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.samagra.orchestrator.Publisher.CommonProducer;
+import com.uci.dao.models.XMessageDAO;
+import com.uci.dao.repository.XMessageRepository;
 import com.uci.utils.BotService;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.SenderReceiverInfo;
-import messagerosa.dao.XMessageDAO;
-import messagerosa.dao.XMessageRepo;
 import messagerosa.xml.XMessageParser;
 import org.kie.api.runtime.KieSession;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import messagerosa.core.model.XMessage;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.xml.bind.JAXBException;
@@ -30,7 +32,7 @@ public class OrchestratorConsumer {
     public KieSession kSession;
 
     @Autowired
-    public XMessageRepo xmsgRepo;
+    public XMessageRepository xmsgRepo;
 
     @Autowired
     public CommonProducer kafkaProducer;
@@ -47,7 +49,7 @@ public class OrchestratorConsumer {
 
 
         // Adding additional context data to the system.
-        XMessageDAO lastMessage = xmsgRepo.findFirstByFromIdOrderByTimestampDesc(msg.getFrom().getUserID());
+//        XMessageDAO lastMessage = xmsgRepo.findFirstByFromIdOrderByTimestampDesc(msg.getFrom().getUserID());
         long endTime1 = System.nanoTime();
         long duration1 = (endTime1 - startTime);
         log.info("Total time spent in processing message CP-1: " + duration1 / 1000000);
@@ -64,25 +66,28 @@ public class OrchestratorConsumer {
                         from.setUserID(msg.getFrom().getUserID());
                         msg.setFrom(from);
                         msg.setApp(appName);
-                        msg.setLastMessageID(getLastMessageID(msg));
-                        msg.setAdapterId(adapterID);
-                        // Assign Transformer
-                        kSession.insert(msg);
-                        kSession.fireAllRules();
-                        // Send message to "transformer"
-                        //TODO Do this through orchestrator
-                        if(msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)){
-                            try {
-                                kafkaProducer.send("com.odk.SamagraODKAgg", msg.toXML());
-                            } catch (JsonProcessingException e) {
-                                e.printStackTrace();
-                            } catch (JAXBException e) {
-                                e.printStackTrace();
+                        getLastMessageID(msg).subscribe(lastMessageID -> {
+                            msg.setLastMessageID(lastMessageID);
+                            msg.setAdapterId(adapterID);
+                            // Assign Transformer
+                            kSession.insert(msg);
+                            kSession.fireAllRules();
+                            // Send message to "transformer"
+                            //TODO Do this through orchestrator
+                            if(msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)){
+                                try {
+                                    kafkaProducer.send("com.odk.SamagraODKAgg", msg.toXML());
+                                } catch (JsonProcessingException e) {
+                                    e.printStackTrace();
+                                } catch (JAXBException e) {
+                                    e.printStackTrace();
+                                }
+                                long endTime = System.nanoTime();
+                                long duration = (endTime - finalStartTime);
+                                log.info("Total time spent in processing message CP-2: " + duration / 1000000);
                             }
-                            long endTime = System.nanoTime();
-                            long duration = (endTime - finalStartTime);
-                            log.info("Total time spent in processing message CP-2: " + duration / 1000000);
-                        }
+                        });
+
                     }
                 });
             }
@@ -90,18 +95,27 @@ public class OrchestratorConsumer {
 
     }
 
-    private String getLastMessageID(XMessage msg) {
+    private Flux<String> getLastMessageID(XMessage msg) {
         if(msg.getMessageType().toString().equalsIgnoreCase("text")) {
-            List<XMessageDAO> msg1 =  xmsgRepo.findAllByUserIdOrderByTimestamp(msg.getFrom().getUserID());
-            if (msg1.size() > 0) {
-                return String.valueOf(msg1.get(0).getId());
-            }
+            return xmsgRepo.findAllByUserIdOrderByTimestamp(msg.getFrom().getUserID()).map(new Function<List<XMessageDAO>, String>() {
+                @Override
+                public String apply(List<XMessageDAO> msg1) {
+                    if (msg1.size() > 0) {
+                        return String.valueOf(msg1.get(0).getId());
+                    }
+                    return "0";
+                }
+            });
+
         }else if(msg.getMessageType().toString().equalsIgnoreCase("button")){
-            XMessageDAO lastMessage =
-                    xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(msg.getFrom().getUserID(), "SENT");
-            return String.valueOf(lastMessage.getId());
+            return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(msg.getFrom().getUserID(), "SENT").map(new Function<XMessageDAO, String>() {
+                @Override
+                public String apply(XMessageDAO lastMessage) {
+                    return String.valueOf(lastMessage.getId());
+                }
+            });
         }
-        return "0";
+        return Flux.empty();
     }
 
 
@@ -110,33 +124,50 @@ public class OrchestratorConsumer {
     }
 
     private Mono<String> getAppName(String text,SenderReceiverInfo from) {
-        String appName = DEFAULT_APP_NAME;
+        String default_app_name = DEFAULT_APP_NAME;
         try {
-            String finalAppName = appName;
-            return botService.getCampaignFromStartingMessage(text).map(new Function<String, String>() {
+            String finalAppName = default_app_name;
+            return botService.getCampaignFromStartingMessage(text).flatMap(new Function<String, Mono<? extends String>>() {
                 @Override
-                public String apply(String appName1) {
+                public Mono<String> apply(String appName1) {
                     if (appName1 == null || appName1.equals("")) {
                         try {
-                            XMessageDAO xMessageLast = xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT");
-                            appName1 = xMessageLast.getApp();
+                            return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
+                                @Override
+                                public String apply(XMessageDAO xMessageLast) {
+                                    return (xMessageLast.getApp()== null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
+                                }
+                            });
                         } catch (Exception e2) {
-                            XMessageDAO xMessageLast = xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT");
-                            appName1 = xMessageLast.getApp();
+                            return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
+                                @Override
+                                public String apply(XMessageDAO xMessageLast) {
+                                    return (xMessageLast.getApp()== null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
+                                }
+                            });
                         }
                     }
-                    return (appName1 == null || appName1.isEmpty()) ? finalAppName : appName1;
+                    return (appName1== null || appName1.isEmpty()) ? Mono.just(finalAppName) : Mono.just(appName1);
                 }
             });
+
+
         } catch (Exception e) {
             try {
-                XMessageDAO xMessageLast = xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT");
-                appName = xMessageLast.getApp();
+                return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
+                    @Override
+                    public String apply(XMessageDAO xMessageLast) {
+                        return xMessageLast.getApp();
+                    }
+                });
             } catch (Exception e2) {
-                XMessageDAO xMessageLast = xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT");
-                appName = xMessageLast.getApp();
+                return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
+                    @Override
+                    public String apply(XMessageDAO xMessageLast) {
+                        return xMessageLast.getApp();
+                    }
+                });
             }
-            return Mono.just(appName);
         }
     }
 }
