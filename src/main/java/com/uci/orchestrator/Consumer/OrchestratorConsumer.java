@@ -56,7 +56,7 @@ public class OrchestratorConsumer {
         startTime = System.nanoTime();
         SenderReceiverInfo from = msg.getFrom();
         long finalStartTime = startTime;
-        getAppName(msg.getPayload().getText(),msg.getFrom()).subscribe(new Consumer<String>() {
+        getAppName(msg.getPayload().getText(), msg.getFrom()).subscribe(new Consumer<String>() {
             @Override
             public void accept(String appName) {
                 fetchAdapterID(appName).subscribe(new Consumer<String>() {
@@ -74,7 +74,7 @@ public class OrchestratorConsumer {
                             kSession.fireAllRules();
                             // Send message to "transformer"
                             //TODO Do this through orchestrator
-                            if(msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)){
+                            if (msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
                                 try {
                                     kafkaProducer.send("com.odk.SamagraODKAgg", msg.toXML());
                                 } catch (JsonProcessingException e) {
@@ -96,7 +96,7 @@ public class OrchestratorConsumer {
     }
 
     private Flux<String> getLastMessageID(XMessage msg) {
-        if(msg.getMessageType().toString().equalsIgnoreCase("text")) {
+        if (msg.getMessageType().toString().equalsIgnoreCase("text")) {
             LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
             return Flux.empty();
 //            return xmsgRepo.findAllByUserIdAndTimestampAfter(msg.getFrom().getUserID(), yesterday).map(new Function<List<XMessageDAO>, String>() {
@@ -109,7 +109,7 @@ public class OrchestratorConsumer {
 //                }
 //            });
 
-        }else if(msg.getMessageType().toString().equalsIgnoreCase("button")){
+        } else if (msg.getMessageType().toString().equalsIgnoreCase("button")) {
             return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(msg.getFrom().getUserID(), "SENT").map(new Function<XMessageDAO, String>() {
                 @Override
                 public String apply(XMessageDAO lastMessage) {
@@ -125,7 +125,7 @@ public class OrchestratorConsumer {
         return botService.getCurrentAdapter(appName);
     }
 
-    private Mono<String> getAppName(String text,SenderReceiverInfo from) {
+    private Mono<String> getAppName(String text, SenderReceiverInfo from) {
         String default_app_name = DEFAULT_APP_NAME;
         try {
             String finalAppName = default_app_name;
@@ -137,19 +137,19 @@ public class OrchestratorConsumer {
                             return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
                                 @Override
                                 public String apply(XMessageDAO xMessageLast) {
-                                    return (xMessageLast.getApp()== null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
+                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
                                 }
                             });
                         } catch (Exception e2) {
                             return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
                                 @Override
                                 public String apply(XMessageDAO xMessageLast) {
-                                    return (xMessageLast.getApp()== null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
+                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
                                 }
                             });
                         }
                     }
-                    return (appName1== null || appName1.isEmpty()) ? Mono.just(finalAppName) : Mono.just(appName1);
+                    return (appName1 == null || appName1.isEmpty()) ? Mono.just(finalAppName) : Mono.just(appName1);
                 }
             });
 
