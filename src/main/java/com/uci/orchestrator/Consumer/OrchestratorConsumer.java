@@ -18,6 +18,8 @@ import reactor.core.publisher.Mono;
 
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -95,15 +97,17 @@ public class OrchestratorConsumer {
 
     private Flux<String> getLastMessageID(XMessage msg) {
         if(msg.getMessageType().toString().equalsIgnoreCase("text")) {
-            return xmsgRepo.findAllByUserIdOrderByTimestamp(msg.getFrom().getUserID()).map(new Function<List<XMessageDAO>, String>() {
-                @Override
-                public String apply(List<XMessageDAO> msg1) {
-                    if (msg1.size() > 0) {
-                        return String.valueOf(msg1.get(0).getId());
-                    }
-                    return "0";
-                }
-            });
+            LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
+            return Flux.empty();
+//            return xmsgRepo.findAllByUserIdAndTimestampAfter(msg.getFrom().getUserID(), yesterday).map(new Function<List<XMessageDAO>, String>() {
+//                @Override
+//                public String apply(List<XMessageDAO> msg1) {
+//                    if (msg1.size() > 0) {
+//                        return String.valueOf(msg1.get(0).getId());
+//                    }
+//                    return "0";
+//                }
+//            });
 
         }else if(msg.getMessageType().toString().equalsIgnoreCase("button")){
             return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(msg.getFrom().getUserID(), "SENT").map(new Function<XMessageDAO, String>() {
