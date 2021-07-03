@@ -13,16 +13,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import messagerosa.core.model.XMessage;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
+import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 @Slf4j
 @Component
@@ -41,6 +43,7 @@ public class OrchestratorConsumer {
     public BotService botService;
 
     private final String DEFAULT_APP_NAME = "Global Bot";
+    LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
 
     @KafkaListener(id = "orchestrator1", topics = "${inboundProcessed}")
     public void consumeMessage(String message) throws Exception {
@@ -95,29 +98,61 @@ public class OrchestratorConsumer {
 
     }
 
-    private Flux<String> getLastMessageID(XMessage msg) {
+    private Mono<String> getLastMessageID(XMessage msg) {
         if (msg.getMessageType().toString().equalsIgnoreCase("text")) {
-            LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
-            return Flux.empty();
-//            return xmsgRepo.findAllByUserIdAndTimestampAfter(msg.getFrom().getUserID(), yesterday).map(new Function<List<XMessageDAO>, String>() {
-//                @Override
-//                public String apply(List<XMessageDAO> msg1) {
-//                    if (msg1.size() > 0) {
-//                        return String.valueOf(msg1.get(0).getId());
-//                    }
-//                    return "0";
-//                }
-//            });
+            return getLatestXMessage(msg.getFrom().getUserID(),yesterday,"SENT").map(new Function<XMessageDAO, String>() {
+                @Override
+                public String apply(XMessageDAO msg1) {
+                        if(msg1.getId() == null) {
+                            System.out.println("cError");
+                            return "";
+                        }
+                    return String.valueOf(msg1.getId());
+                }
+            });
 
         } else if (msg.getMessageType().toString().equalsIgnoreCase("button")) {
-            return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(msg.getFrom().getUserID(), "SENT").map(new Function<XMessageDAO, String>() {
+            return getLatestXMessage(msg.getFrom().getUserID(),yesterday,"SENT").map(new Function<XMessageDAO, String>() {
                 @Override
                 public String apply(XMessageDAO lastMessage) {
                     return String.valueOf(lastMessage.getId());
                 }
             });
+//
+//            map(new Function<XMessageDAO, String>() {
+//                @Override
+//                public String apply(XMessageDAO lastMessage) {
+//                    return String.valueOf(lastMessage.getId());
+//                }
+//            });
         }
-        return Flux.empty();
+        return Mono.empty();
+    }
+
+    private Mono<XMessageDAO> getLatestXMessage(String userID, LocalDateTime yesterday, String messageState) {
+        return xmsgRepo.findAllByUserIdAndTimestampAfter(userID, yesterday).collectList().map(new Function<List<XMessageDAO>, XMessageDAO>() {
+            @Override
+            public XMessageDAO apply(List<XMessageDAO> xMessageDAOS) {
+                if(xMessageDAOS.size() >0) {
+                    List<XMessageDAO> filteredList = new ArrayList<>();
+                    for(XMessageDAO xMessageDAO:xMessageDAOS){
+                        if(xMessageDAO.getMessageState().equals(XMessage.MessageState.SENT.name()))
+                            filteredList.add(xMessageDAO);
+                    }
+                    if(filteredList.size() >0) {
+                        filteredList.sort(new Comparator<XMessageDAO>() {
+                            @Override
+                            public int compare(XMessageDAO o1, XMessageDAO o2) {
+                                return o1.getTimestamp().compareTo(o2.getTimestamp());
+                            }
+                        });
+                    }
+
+                    return xMessageDAOS.get(0);
+                }
+                return new XMessageDAO();
+            }
+        });
     }
 
 
@@ -134,14 +169,14 @@ public class OrchestratorConsumer {
                 public Mono<String> apply(String appName1) {
                     if (appName1 == null || appName1.equals("")) {
                         try {
-                            return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
+                            return getLatestXMessage(from.getUserID(),yesterday,XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                 @Override
                                 public String apply(XMessageDAO xMessageLast) {
                                     return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
                                 }
                             });
                         } catch (Exception e2) {
-                            return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
+                            return getLatestXMessage(from.getUserID(),yesterday,XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                 @Override
                                 public String apply(XMessageDAO xMessageLast) {
                                     return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
@@ -156,14 +191,14 @@ public class OrchestratorConsumer {
 
         } catch (Exception e) {
             try {
-                return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
+                return getLatestXMessage(from.getUserID(),yesterday,XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                     @Override
                     public String apply(XMessageDAO xMessageLast) {
                         return xMessageLast.getApp();
                     }
                 });
             } catch (Exception e2) {
-                return xmsgRepo.findTopByUserIdAndMessageStateOrderByTimestampDesc(from.getUserID(), "SENT").next().map(new Function<XMessageDAO, String>() {
+                return getLatestXMessage(from.getUserID(),yesterday,XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                     @Override
                     public String apply(XMessageDAO xMessageLast) {
                         return xMessageLast.getApp();
