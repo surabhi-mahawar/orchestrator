@@ -161,9 +161,7 @@ public class OrchestratorConsumer {
     }
 
     private Mono<String> getAppName(String text, SenderReceiverInfo from) {
-        String default_app_name = DEFAULT_APP_NAME;
         try {
-            String finalAppName = default_app_name;
             return botService.getCampaignFromStartingMessage(text).flatMap(new Function<String, Mono<? extends String>>() {
                 @Override
                 public Mono<String> apply(String appName1) {
@@ -172,19 +170,19 @@ public class OrchestratorConsumer {
                             return getLatestXMessage(from.getUserID(),yesterday,XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                 @Override
                                 public String apply(XMessageDAO xMessageLast) {
-                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
+                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
                                 }
                             });
                         } catch (Exception e2) {
                             return getLatestXMessage(from.getUserID(),yesterday,XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                 @Override
                                 public String apply(XMessageDAO xMessageLast) {
-                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
+                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
                                 }
                             });
                         }
                     }
-                    return (appName1 == null || appName1.isEmpty()) ? Mono.just(finalAppName) : Mono.just(appName1);
+                    return (appName1 == null || appName1.isEmpty()) ? Mono.just("finalAppName") : Mono.just(appName1);
                 }
             });
 
