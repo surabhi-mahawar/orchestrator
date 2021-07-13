@@ -9,6 +9,7 @@ import com.uci.utils.CommonProducer;
 import lombok.extern.slf4j.Slf4j;
 import messagerosa.core.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -32,21 +33,21 @@ public class CampaignConsumer {
     @Autowired
     public static CampaignService campaignService;
 
-    @KafkaListener(id = "campaign", topics = "campaign")
+    @KafkaListener(id = "${campaign}", topics = "${campaign}")
     public void consumeMessage(String campaignID) throws Exception {
-        processMessage(campaignID).subscribe(new Consumer<XMessage>() {
-            @Override
-            public void accept(XMessage xMessage) {
-                log.info("Pushing to : "+ TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()));
-                try {
-                    kafkaProducer.send("com.odk.broadcast", xMessage.toXML());
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace();
-                } catch (JAXBException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+//        processMessage(campaignID).subscribe(new Consumer<XMessage>() {
+//            @Override
+//            public void accept(XMessage xMessage) {
+//                log.info("Pushing to : "+ TransformerRegistry.getName(xMessage.getTransformers().get(0).getId()));
+//                try {
+//                    kafkaProducer.send("com.odk.broadcast", xMessage.toXML());
+//                } catch (JsonProcessingException e) {
+//                    e.printStackTrace();
+//                } catch (JAXBException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        });
 
     }
 
@@ -100,6 +101,8 @@ public class CampaignConsumer {
                        .from(from)
                        .build();
            }
+       }).doOnError(e -> {
+           log.error("Error in Campaign Consume::" +  e.getMessage());
        });
 
     }
