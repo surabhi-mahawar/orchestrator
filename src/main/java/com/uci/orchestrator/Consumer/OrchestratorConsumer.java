@@ -10,6 +10,7 @@ import messagerosa.core.model.SenderReceiverInfo;
 import messagerosa.xml.XMessageParser;
 import org.kie.api.runtime.KieSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import messagerosa.core.model.XMessage;
 import org.springframework.stereotype.Component;
@@ -39,6 +40,9 @@ public class OrchestratorConsumer {
     @Autowired
     public CommonProducer kafkaProducer;
 
+    @Value("${odk-transformer}")
+    public String odkTransformerTopic;
+
     @Autowired
     public BotService botService;
 
@@ -50,9 +54,6 @@ public class OrchestratorConsumer {
         long startTime = System.nanoTime();
         XMessage msg = XMessageParser.parse(new ByteArrayInputStream(message.getBytes()));
 
-
-        // Adding additional context data to the system.
-//        XMessageDAO lastMessage = xmsgRepo.findFirstByFromIdOrderByTimestampDesc(msg.getFrom().getUserID());
         long endTime1 = System.nanoTime();
         long duration1 = (endTime1 - startTime);
         log.info("Total time spent in processing message CP-1: " + duration1 / 1000000);
@@ -79,7 +80,7 @@ public class OrchestratorConsumer {
                             //TODO Do this through orchestrator
                             if (msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
                                 try {
-                                    kafkaProducer.send("com.odk.SamagraODKAgg", msg.toXML());
+                                    kafkaProducer.send(odkTransformerTopic, msg.toXML());
                                 } catch (JsonProcessingException e) {
                                     e.printStackTrace();
                                 } catch (JAXBException e) {
@@ -161,9 +162,7 @@ public class OrchestratorConsumer {
     }
 
     private Mono<String> getAppName(String text, SenderReceiverInfo from) {
-        String default_app_name = DEFAULT_APP_NAME;
         try {
-            String finalAppName = default_app_name;
             return botService.getCampaignFromStartingMessage(text).flatMap(new Function<String, Mono<? extends String>>() {
                 @Override
                 public Mono<String> apply(String appName1) {
@@ -172,19 +171,19 @@ public class OrchestratorConsumer {
                             return getLatestXMessage(from.getUserID(),yesterday,XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                 @Override
                                 public String apply(XMessageDAO xMessageLast) {
-                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
+                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
                                 }
                             });
                         } catch (Exception e2) {
                             return getLatestXMessage(from.getUserID(),yesterday,XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                 @Override
                                 public String apply(XMessageDAO xMessageLast) {
-                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? finalAppName : xMessageLast.getApp();
+                                    return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
                                 }
                             });
                         }
                     }
-                    return (appName1 == null || appName1.isEmpty()) ? Mono.just(finalAppName) : Mono.just(appName1);
+                    return (appName1 == null || appName1.isEmpty()) ? Mono.just("finalAppName") : Mono.just(appName1);
                 }
             });
 

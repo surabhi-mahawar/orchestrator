@@ -16,7 +16,7 @@ public class DataCorrectionConsumer {
 //            XMessageDAO msgDao = xmsgRepo.findByGupShupMessageId(gsmsid);
 //            String xmsgText = message.getPayload().getText();
 //            msgDao.setXMessage(xmsgText);
-//            xmsgRepo.save(msgDao);
+//            xmsgRepo.insert(msgDao);
         }
     }
 }
