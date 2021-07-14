@@ -43,6 +43,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/io.projectreactor.kafka/reactor-kafka -->
+        <dependency>
+            <groupId>io.projectreactor.kafka</groupId>
+            <artifactId>reactor-kafka</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.kie</groupId>
             <artifactId>kie-ci</artifactId>
