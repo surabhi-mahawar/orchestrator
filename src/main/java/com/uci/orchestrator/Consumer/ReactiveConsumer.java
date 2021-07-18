@@ -1,16 +1,24 @@
 package com.uci.orchestrator.Consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.inversoft.error.Errors;
+import com.inversoft.rest.ClientResponse;
 import com.uci.dao.models.XMessageDAO;
 import com.uci.dao.repository.XMessageRepository;
 import com.uci.utils.BotService;
+import com.uci.utils.CampaignService;
+import com.uci.utils.encryption.AESWrapper;
 import com.uci.utils.kafka.ReactiveProducer;
 import com.uci.utils.kafka.SimpleProducer;
+import io.fusionauth.domain.api.UserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import messagerosa.core.model.DeviceType;
 import messagerosa.core.model.SenderReceiverInfo;
 import messagerosa.core.model.XMessage;
 import messagerosa.xml.XMessageParser;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.kafka.common.protocol.types.Field;
 import org.kie.api.runtime.KieSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +37,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static com.uci.utils.encryption.AESWrapper.encodeKey;
 
 @Component
 @RequiredArgsConstructor
@@ -55,6 +65,14 @@ public class ReactiveConsumer {
     @Autowired
     public BotService botService;
 
+    @Autowired
+    public CampaignService campaignService;
+
+    @Value("${encryptionKeyString}")
+    private String secret;
+
+    public AESWrapper encryptor;
+
     private final String DEFAULT_APP_NAME = "Global Bot";
     LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
 
@@ -79,25 +97,32 @@ public class ReactiveConsumer {
                                                         public void accept(String adapterID) {
                                                             logTimeTaken(startTime, 3);
                                                             from.setCampaignID(appName);
-                                                            from.setUserID(msg.getFrom().getUserID());
-                                                            msg.setFrom(from);
-                                                            msg.setApp(appName);
-                                                            getLastMessageID(msg)
-                                                                    .doOnNext(lastMessageID -> {
-                                                                        logTimeTaken(startTime, 4);
-                                                                        msg.setLastMessageID(lastMessageID);
-                                                                        msg.setAdapterId(adapterID);
-                                                                        if (msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
-                                                                            try {
-                                                                                kafkaProducer.send(odkTransformerTopic, msg.toXML());
-                                                                                // reactiveProducer.sendMessages(odkTransformerTopic, msg.toXML());
-                                                                            }catch (JAXBException e) {
-                                                                                e.printStackTrace();
-                                                                            }
-                                                                            logTimeTaken(startTime, 15);
+                                                            from.setDeviceType(DeviceType.PHONE);
+                                                            resolveUser(from, appName)
+                                                                    .doOnNext(new Consumer<SenderReceiverInfo>() {
+                                                                        @Override
+                                                                        public void accept(SenderReceiverInfo from) {
+                                                                            msg.setFrom(from);
+                                                                            msg.setApp(appName);
+                                                                            getLastMessageID(msg)
+                                                                                    .doOnNext(lastMessageID -> {
+                                                                                        logTimeTaken(startTime, 4);
+                                                                                        msg.setLastMessageID(lastMessageID);
+                                                                                        msg.setAdapterId(adapterID);
+                                                                                        if (msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
+                                                                                            try {
+                                                                                                kafkaProducer.send(odkTransformerTopic, msg.toXML());
+                                                                                                // reactiveProducer.sendMessages(odkTransformerTopic, msg.toXML());
+                                                                                            } catch (JAXBException e) {
+                                                                                                e.printStackTrace();
+                                                                                            }
+                                                                                            logTimeTaken(startTime, 15);
+                                                                                        }
+                                                                                    })
+                                                                                    .subscribe();
                                                                         }
-                                                                    })
-                                                                    .subscribe();
+                                                                    }).subscribe();
+
                                                         }
                                                     })
                                                     .subscribe();
@@ -117,6 +142,35 @@ public class ReactiveConsumer {
                     }
                 })
                 .subscribe();
+    }
+
+    private Mono<SenderReceiverInfo> resolveUser(SenderReceiverInfo from, String appName) {
+        try {
+            String deviceString = from.getDeviceType().toString() + ":" + from.getUserID();
+            String encodedBase64Key = encodeKey(secret);
+            String deviceID = AESWrapper.encrypt(deviceString, encodedBase64Key);
+            ClientResponse<UserResponse, Errors> response = campaignService.fusionAuthClient.retrieveUserByUsername(deviceID);
+            if (response.wasSuccessful()) {
+                from.setUserID(deviceID);
+                return Mono.just(from);
+            } else {
+                return botService.updateUser(deviceString, appName)
+                        .flatMap(new Function<Pair<Boolean, String>, Mono<SenderReceiverInfo>>() {
+                            @Override
+                            public Mono<SenderReceiverInfo> apply(Pair<Boolean, String> result) {
+                                if (result.getLeft()) {
+                                    from.setDeviceID(result.getRight());
+                                    return Mono.just(from);
+                                } else {
+                                    return Mono.just(null);
+                                }
+                            }
+                        });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Mono.just(null);
+        }
     }
 
     private void logTimeTaken(long startTime, int checkpointID) {
@@ -163,7 +217,8 @@ public class ReactiveConsumer {
                 if (xMessageDAOS.size() > 0) {
                     List<XMessageDAO> filteredList = new ArrayList<>();
                     for (XMessageDAO xMessageDAO : xMessageDAOS) {
-                        if (xMessageDAO.getMessageState().equals(XMessage.MessageState.SENT.name()))
+                        if (xMessageDAO.getMessageState().equals(XMessage.MessageState.SENT.name()) ||
+                                xMessageDAO.getMessageState().equals(XMessage.MessageState.REPLIED.name()) )
                             filteredList.add(xMessageDAO);
                     }
                     if (filteredList.size() > 0) {
@@ -186,32 +241,8 @@ public class ReactiveConsumer {
     }
 
     private Mono<String> getAppName(String text, SenderReceiverInfo from) {
-        try {
-            return botService.getCampaignFromStartingMessage(text)
-                    .flatMap(new Function<String, Mono<? extends String>>() {
-                        @Override
-                        public Mono<String> apply(String appName1) {
-                            if (appName1 == null || appName1.equals("")) {
-                                try {
-                                    return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
-                                        @Override
-                                        public String apply(XMessageDAO xMessageLast) {
-                                            return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
-                                        }
-                                    });
-                                } catch (Exception e2) {
-                                    return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
-                                        @Override
-                                        public String apply(XMessageDAO xMessageLast) {
-                                            return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
-                                        }
-                                    });
-                                }
-                            }
-                            return (appName1 == null || appName1.isEmpty()) ? Mono.just("finalAppName") : Mono.just(appName1);
-                        }
-                    });
-        } catch (Exception e) {
+        LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
+        if (text.equals("")) {
             try {
                 return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                     @Override
@@ -226,6 +257,49 @@ public class ReactiveConsumer {
                         return xMessageLast.getApp();
                     }
                 });
+            }
+        } else {
+            try {
+                return botService.getCampaignFromStartingMessage(text)
+                        .flatMap(new Function<String, Mono<? extends String>>() {
+                            @Override
+                            public Mono<String> apply(String appName1) {
+                                if (appName1 == null || appName1.equals("")) {
+                                    try {
+                                        return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
+                                            @Override
+                                            public String apply(XMessageDAO xMessageLast) {
+                                                return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
+                                            }
+                                        });
+                                    } catch (Exception e2) {
+                                        return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
+                                            @Override
+                                            public String apply(XMessageDAO xMessageLast) {
+                                                return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
+                                            }
+                                        });
+                                    }
+                                }
+                                return (appName1 == null || appName1.isEmpty()) ? Mono.just("finalAppName") : Mono.just(appName1);
+                            }
+                        });
+            } catch (Exception e) {
+                try {
+                    return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
+                        @Override
+                        public String apply(XMessageDAO xMessageLast) {
+                            return xMessageLast.getApp();
+                        }
+                    });
+                } catch (Exception e2) {
+                    return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
+                        @Override
+                        public String apply(XMessageDAO xMessageLast) {
+                            return xMessageLast.getApp();
+                        }
+                    });
+                }
             }
         }
     }

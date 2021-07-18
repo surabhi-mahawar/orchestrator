@@ -26,9 +26,10 @@ public class UserService {
     @Autowired
     public static CampaignService campaignService;
 
-    public static User findByEmail(String email) {
-        FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
-        ClientResponse<UserResponse, Errors> response = staticClient.retrieveUserByEmail(email);
+    public FusionAuthClient fusionAuthClient;
+
+    public User findByEmail(String email) {
+        ClientResponse<UserResponse, Errors> response = fusionAuthClient.retrieveUserByEmail(email);
         if (response.wasSuccessful()) {
             return response.successResponse.user;
         } else if (response.errorResponse != null) {
@@ -41,12 +42,11 @@ public class UserService {
         return null;
     }
 
-    public static User findByPhone(String phone) {
-        FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
+    public User findByPhone(String phone) {
         UserSearchCriteria usc = new UserSearchCriteria();
         usc.queryString = "*" + phone + "*";
         SearchRequest sr = new SearchRequest(usc);
-        ClientResponse<SearchResponse, Errors> cr = staticClient.searchUsersByQueryString(sr);
+        ClientResponse<SearchResponse, Errors> cr = fusionAuthClient.searchUsersByQueryString(sr);
 
         if (cr.wasSuccessful() && cr.successResponse.users.size() > 0) {
             return cr.successResponse.users.get(0);
@@ -58,15 +58,14 @@ public class UserService {
         return null;
     }
 
-    public static List<User> findUsersForCampaign(String campaignName) throws Exception {
+    public List<User> findUsersForCampaign(String campaignName) throws Exception {
 
         Application currentApplication = campaignService.getCampaignFromName(campaignName);
-        FusionAuthClient staticClient = new FusionAuthClient("c0VY85LRCYnsk64xrjdXNVFFJ3ziTJ91r08Cm0Pcjbc", "http://134.209.150.161:9011");
         if(currentApplication != null){
             UserSearchCriteria usc = new UserSearchCriteria();
             usc.queryString = "(registrations.applicationId: " + currentApplication.id.toString() + ")";
             SearchRequest sr = new SearchRequest(usc);
-            ClientResponse<SearchResponse, Errors> cr = staticClient.searchUsersByQueryString(sr);
+            ClientResponse<SearchResponse, Errors> cr = fusionAuthClient.searchUsersByQueryString(sr);
 
             if (cr.wasSuccessful()) {
                 return cr.successResponse.users;
