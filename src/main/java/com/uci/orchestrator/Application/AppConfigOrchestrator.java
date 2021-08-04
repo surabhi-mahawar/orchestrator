@@ -1,5 +1,6 @@
 package com.uci.orchestrator.Application;
 
+import com.uci.dao.service.HealthService;
 import com.uci.orchestrator.Drools.DroolsBeanFactory;
 import com.uci.utils.CampaignService;
 import com.uci.utils.kafka.ReactiveProducer;
@@ -112,5 +113,10 @@ public class AppConfigOrchestrator {
     @Bean
     ReactiveProducer kafkaReactiveProducer() {
         return new ReactiveProducer();
+    }
+    
+    @Bean
+    public HealthService healthService() {
+        return new HealthService();
     }
 }

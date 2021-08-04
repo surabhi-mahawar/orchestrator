@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.uci.utils.HealthService;
+import com.uci.dao.service.HealthService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,7 +26,7 @@ public class ServiceStatusController {
 	private HealthService healthService;
     
     @RequestMapping(value = "/health/cassandra", method = RequestMethod.GET, produces = { "application/json", "text/json" })
-    public ResponseEntity<JsonNode> cassandraStatusCheck() throws JsonProcessingException {
+    public ResponseEntity<JsonNode> cassandraStatusCheck() throws IOException, JsonProcessingException {
     	JsonNode jsonNode = getResponseJsonNode();
     	((ObjectNode) jsonNode).put("result", healthService.getCassandraHealthNode());
         
