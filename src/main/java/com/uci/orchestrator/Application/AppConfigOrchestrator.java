@@ -37,6 +37,9 @@ public class AppConfigOrchestrator {
 
     @Value("${campaign.url}")
     public String CAMPAIGN_URL;
+    
+    @Value("${campaign.admin.token}")
+	public String CAMPAIGN_ADMIN_TOKEN;
 
     @Value("${fusionauth.url}")
     public String FUSIONAUTH_URL;
@@ -53,6 +56,7 @@ public class AppConfigOrchestrator {
     public CampaignService getCampaignService() {
         WebClient webClient = WebClient.builder()
                 .baseUrl(CAMPAIGN_URL)
+                .defaultHeader("admin-token", CAMPAIGN_ADMIN_TOKEN)
                 .build();
         FusionAuthClient fusionAuthClient = getFAClient();
         return new CampaignService(webClient, fusionAuthClient);
