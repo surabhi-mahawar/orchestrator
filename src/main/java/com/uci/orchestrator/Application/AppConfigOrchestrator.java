@@ -1,5 +1,6 @@
 package com.uci.orchestrator.Application;
 
+import com.uci.dao.service.HealthService;
 import com.uci.orchestrator.Drools.DroolsBeanFactory;
 import com.uci.utils.CampaignService;
 import com.uci.utils.kafka.ReactiveProducer;
@@ -36,6 +37,9 @@ public class AppConfigOrchestrator {
 
     @Value("${campaign.url}")
     public String CAMPAIGN_URL;
+    
+    @Value("${campaign.admin.token}")
+	public String CAMPAIGN_ADMIN_TOKEN;
 
     @Value("${fusionauth.url}")
     public String FUSIONAUTH_URL;
@@ -52,6 +56,7 @@ public class AppConfigOrchestrator {
     public CampaignService getCampaignService() {
         WebClient webClient = WebClient.builder()
                 .baseUrl(CAMPAIGN_URL)
+                .defaultHeader("admin-token", CAMPAIGN_ADMIN_TOKEN)
                 .build();
         FusionAuthClient fusionAuthClient = getFAClient();
         return new CampaignService(webClient, fusionAuthClient);
@@ -112,5 +117,10 @@ public class AppConfigOrchestrator {
     @Bean
     ReactiveProducer kafkaReactiveProducer() {
         return new ReactiveProducer();
+    }
+    
+    @Bean
+    public HealthService healthService() {
+        return new HealthService();
     }
 }
