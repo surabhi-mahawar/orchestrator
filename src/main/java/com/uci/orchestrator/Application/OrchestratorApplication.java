@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @EnableKafka
 @EnableAsync
-@ComponentScan(basePackages = {"com.uci.orchestrator", "com.uci.dao", "messagerosa","com.uci.utils"})
+@ComponentScan(basePackages = {"com.uci.orchestrator", "com.uci.dao", "messagerosa", "com.uci.utils"})
 //@EnableReactiveCassandraRepositories("com.uci.dao")
 @EntityScan(basePackages = {"com.uci.dao.models", "com.uci.orchestrator"})
 @PropertySource("application-messagerosa.properties")
@@ -23,5 +23,4 @@ public class OrchestratorApplication {
     public static void main(String[] args) {
         SpringApplication.run(OrchestratorApplication.class, args);
     }
-
 }
