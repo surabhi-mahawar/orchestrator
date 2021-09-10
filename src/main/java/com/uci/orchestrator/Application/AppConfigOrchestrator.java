@@ -119,8 +119,8 @@ public class AppConfigOrchestrator {
         return new ReactiveProducer();
     }
     
-    @Bean
-    public HealthService healthService() {
-        return new HealthService();
-    }
+//    @Bean
+//    public HealthService healthService() {
+//        return new HealthService();
+//    }
 }
