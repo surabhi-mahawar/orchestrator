@@ -1,5 +1,6 @@
 package com.uci.orchestrator.Application;
 
+import com.uci.dao.service.HealthService;
 import com.uci.orchestrator.Drools.DroolsBeanFactory;
 import com.uci.utils.CampaignService;
 import com.uci.utils.kafka.ReactiveProducer;
@@ -27,28 +28,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableAutoConfiguration
 public class AppConfigOrchestrator {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String BOOTSTRAP_SERVERS;
 
-    private final String GROUP_ID = "orchestrator-new";
+    private final String GROUP_ID = "orchestrator";
 
     @Value("${campaign.url}")
     public String CAMPAIGN_URL;
+    
+    @Value("${campaign.admin.token}")
+	public String CAMPAIGN_ADMIN_TOKEN;
+
+    @Value("${fusionauth.url}")
+    public String FUSIONAUTH_URL;
+
+    @Value("${fusionauth.key}")
+    public String FUSIONAUTH_KEY;
 
     @Bean
-    public FusionAuthClient AuthServerConnection() {
-        return new FusionAuthClient("${authserver.apikey}", "${authserver.apiURL}");
+    public FusionAuthClient getFAClient() {
+        return new FusionAuthClient(FUSIONAUTH_KEY, FUSIONAUTH_URL);
     }
 
     @Bean
     public CampaignService getCampaignService() {
         WebClient webClient = WebClient.builder()
                 .baseUrl(CAMPAIGN_URL)
+                .defaultHeader("admin-token", CAMPAIGN_ADMIN_TOKEN)
                 .build();
-        return new CampaignService(webClient);
+        FusionAuthClient fusionAuthClient = getFAClient();
+        return new CampaignService(webClient, fusionAuthClient);
     }
 
     @Bean
@@ -107,4 +118,9 @@ public class AppConfigOrchestrator {
     ReactiveProducer kafkaReactiveProducer() {
         return new ReactiveProducer();
     }
+    
+//    @Bean
+//    public HealthService healthService() {
+//        return new HealthService();
+//    }
 }
