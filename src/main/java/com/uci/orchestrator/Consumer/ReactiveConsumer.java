@@ -86,6 +86,7 @@ public class ReactiveConsumer {
                             final long startTime = System.nanoTime();
                             XMessage msg = XMessageParser.parse(new ByteArrayInputStream(stringMessage.value().getBytes()));
                             SenderReceiverInfo from = msg.getFrom();
+                            logTimeTaken(startTime, 1);
                             getAppName(msg.getPayload().getText(), msg.getFrom())
                                     .doOnNext(new Consumer<String>() {
                                         @Override
@@ -119,13 +120,38 @@ public class ReactiveConsumer {
                                                                                             logTimeTaken(startTime, 15);
                                                                                         }
                                                                                     })
+                                                                                    .doOnError(new Consumer<Throwable>() {
+                                                                                        @Override
+                                                                                        public void accept(Throwable throwable) {
+                                                                                            log.error("Error in getLastMessageID" + throwable.getMessage());
+                                                                                        }
+                                                                                    })
                                                                                     .subscribe();
                                                                         }
-                                                                    }).subscribe();
+                                                                    })
+                                                                    .doOnError(new Consumer<Throwable>() {
+                                                                        @Override
+                                                                        public void accept(Throwable throwable) {
+                                                                            log.error("Error in resolveUser" + throwable.getMessage());
+                                                                        }
+                                                                    })
+                                                                    .subscribe();
 
                                                         }
                                                     })
+                                                    .doOnError(new Consumer<Throwable>() {
+                                                        @Override
+                                                        public void accept(Throwable throwable) {
+                                                            log.error("Error in fetchAdapterID" + throwable.getMessage());
+                                                        }
+                                                    })
                                                     .subscribe();
+                                        }
+                                    })
+                                    .doOnError(new Consumer<Throwable>() {
+                                        @Override
+                                        public void accept(Throwable throwable) {
+                                            log.error("Error in getAppName" + throwable.getMessage());
                                         }
                                     })
                                     .subscribe();
@@ -165,10 +191,16 @@ public class ReactiveConsumer {
                                     return Mono.just(null);
                                 }
                             }
+                        }).doOnError(new Consumer<Throwable>() {
+                            @Override
+                            public void accept(Throwable throwable) {
+                                log.error("Error in updateUser" + throwable.getMessage());
+                            }
                         });
             }
         } catch (Exception e) {
             e.printStackTrace();
+            log.error("Error in resolveUser" + e.getMessage());
             return Mono.just(null);
         }
     }
@@ -211,29 +243,36 @@ public class ReactiveConsumer {
     }
 
     private Mono<XMessageDAO> getLatestXMessage(String userID, LocalDateTime yesterday, String messageState) {
-        return xMessageRepository.findAllByUserIdAndTimestampAfter(userID, yesterday).collectList().map(new Function<List<XMessageDAO>, XMessageDAO>() {
-            @Override
-            public XMessageDAO apply(List<XMessageDAO> xMessageDAOS) {
-                if (xMessageDAOS.size() > 0) {
-                    List<XMessageDAO> filteredList = new ArrayList<>();
-                    for (XMessageDAO xMessageDAO : xMessageDAOS) {
-                        if (xMessageDAO.getMessageState().equals(XMessage.MessageState.SENT.name()) ||
-                                xMessageDAO.getMessageState().equals(XMessage.MessageState.REPLIED.name()) )
-                            filteredList.add(xMessageDAO);
-                    }
-                    if (filteredList.size() > 0) {
-                        filteredList.sort(new Comparator<XMessageDAO>() {
-                            @Override
-                            public int compare(XMessageDAO o1, XMessageDAO o2) {
-                                return o1.getTimestamp().compareTo(o2.getTimestamp());
+        return xMessageRepository
+                .findAllByUserIdAndTimestampAfter(userID, yesterday).collectList()
+                .map(new Function<List<XMessageDAO>, XMessageDAO>() {
+                    @Override
+                    public XMessageDAO apply(List<XMessageDAO> xMessageDAOS) {
+                        if (xMessageDAOS.size() > 0) {
+                            List<XMessageDAO> filteredList = new ArrayList<>();
+                            for (XMessageDAO xMessageDAO : xMessageDAOS) {
+                                if (xMessageDAO.getMessageState().equals(XMessage.MessageState.SENT.name()) ||
+                                        xMessageDAO.getMessageState().equals(XMessage.MessageState.REPLIED.name()))
+                                    filteredList.add(xMessageDAO);
                             }
-                        });
+                            if (filteredList.size() > 0) {
+                                filteredList.sort(new Comparator<XMessageDAO>() {
+                                    @Override
+                                    public int compare(XMessageDAO o1, XMessageDAO o2) {
+                                        return o1.getTimestamp().compareTo(o2.getTimestamp());
+                                    }
+                                });
+                            }
+                            return xMessageDAOS.get(0);
+                        }
+                        return new XMessageDAO();
                     }
-                    return xMessageDAOS.get(0);
-                }
-                return new XMessageDAO();
-            }
-        });
+                }).doOnError(new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) {
+                        log.error("Error in getLatestXMessage" + throwable.getMessage());
+                    }
+                });
     }
 
     private Mono<String> fetchAdapterID(String appName) {
@@ -282,6 +321,11 @@ public class ReactiveConsumer {
                                     }
                                 }
                                 return (appName1 == null || appName1.isEmpty()) ? Mono.just("finalAppName") : Mono.just(appName1);
+                            }
+                        }).doOnError(new Consumer<Throwable>() {
+                            @Override
+                            public void accept(Throwable throwable) {
+                                log.error("Error in getCampaignFromStartingMessage" + throwable.getMessage());
                             }
                         });
             } catch (Exception e) {
