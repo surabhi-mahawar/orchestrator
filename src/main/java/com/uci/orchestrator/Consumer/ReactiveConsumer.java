@@ -281,6 +281,7 @@ public class ReactiveConsumer {
 
     private Mono<String> getAppName(String text, SenderReceiverInfo from) {
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
+        log.info("Inside getAppName" + text + "::" + from.getUserID());
         if (text.equals("")) {
             try {
                 return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
@@ -303,6 +304,7 @@ public class ReactiveConsumer {
                         .flatMap(new Function<String, Mono<? extends String>>() {
                             @Override
                             public Mono<String> apply(String appName1) {
+                                log.info("Inside getCampaignFromStartingMessage => " + appName1);
                                 if (appName1 == null || appName1.equals("")) {
                                     try {
                                         return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
@@ -329,6 +331,7 @@ public class ReactiveConsumer {
                             }
                         });
             } catch (Exception e) {
+                log.info("Inside getAppName - exception => " + e.getMessage());
                 try {
                     return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                         @Override
