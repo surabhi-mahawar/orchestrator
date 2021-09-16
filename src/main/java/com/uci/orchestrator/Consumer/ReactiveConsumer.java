@@ -165,7 +165,7 @@ public class ReactiveConsumer {
     
     private void logTelemteryEvents(XMessage msg) {
     	/* Start Conversation Log */
-        if(msg.getMessageState().equals(XMessage.MessageState.SENT)) {
+    	if(msg.getMessageState().equals(XMessage.MessageState.SENT)) {
         	telemetrylogger.info(new LogTelemetryMessage(String.format("Message sent"),
 					TelemetryEventNames.SENT, "", msg.getChannel(),
 					msg.getProvider(), producerID, msg.getFrom().getUserID()));
@@ -237,7 +237,7 @@ public class ReactiveConsumer {
                 @Override
                 public String apply(XMessageDAO msg1) {
                     if (msg1.getId() == null) {
-                        System.out.println("cError");
+                        System.out.println("Orchestrator: No Last Message ID on receiving kafka message from inbound.");
                         return "";
                     }
                     return String.valueOf(msg1.getId());
