@@ -177,7 +177,7 @@ public class ReactiveConsumer {
             String deviceID = AESWrapper.encrypt(deviceString, encodedBase64Key);
             ClientResponse<UserResponse, Errors> response = campaignService.fusionAuthClient.retrieveUserByUsername(deviceID);
             if (response.wasSuccessful()) {
-                from.setDeviceID(deviceID);
+                from.setDeviceID(response.successResponse.user.id.toString());
                 return Mono.just(from);
             } else {
                 return botService.updateUser(deviceString, appName)
