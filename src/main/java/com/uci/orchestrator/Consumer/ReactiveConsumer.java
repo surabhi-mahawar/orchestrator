@@ -103,7 +103,7 @@ public class ReactiveConsumer {
                                                                     .doOnNext(new Consumer<SenderReceiverInfo>() {
                                                                         @Override
                                                                         public void accept(SenderReceiverInfo from) {
-                                                                            msg.setFrom(from);
+                                                                            // msg.setFrom(from);
                                                                             msg.setApp(appName);
                                                                             getLastMessageID(msg)
                                                                                     .doOnNext(lastMessageID -> {
@@ -177,7 +177,7 @@ public class ReactiveConsumer {
             String deviceID = AESWrapper.encrypt(deviceString, encodedBase64Key);
             ClientResponse<UserResponse, Errors> response = campaignService.fusionAuthClient.retrieveUserByUsername(deviceID);
             if (response.wasSuccessful()) {
-                from.setUserID(deviceID);
+                from.setDeviceID(response.successResponse.user.id.toString());
                 return Mono.just(from);
             } else {
                 return botService.updateUser(deviceString, appName)
