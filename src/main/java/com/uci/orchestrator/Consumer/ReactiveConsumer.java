@@ -388,6 +388,7 @@ public class ReactiveConsumer {
             byte[] bdata = FileCopyUtils.copyToByteArray(inputStream);
             
             JsonNode rootNode = mapper.readTree(bdata);
+            System.out.println("File Data Node:"+rootNode);
             
             if(!rootNode.isEmpty() && rootNode.get(userID) != null 
             		&& rootNode.path(userID).get(campaignID) != null) {
@@ -507,9 +508,11 @@ public class ReactiveConsumer {
     		Object consentData = user.data.get("consent");
 			ArrayList consentArray = (ArrayList) consentData;
     		
-    		if(consentArray == null || (
-    			consentArray != null && !consentArray.contains(campaignID))
-    		){
+			if(consentArray == null) {
+				consentArray = new ArrayList();
+			}
+			
+    		if(consentArray != null && !consentArray.contains(campaignID)) {
     			consentArray.add(campaignID);
     			
     			user.data.put("consent", consentArray); 
