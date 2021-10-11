@@ -128,6 +128,7 @@ public class ReactiveConsumer {
                                     .doOnNext(new Consumer<String>() {
                                         @Override
                                         public void accept(String appName) {
+                                        	System.out.println("appName:"+appName);
                                             logTimeTaken(startTime, 2);
                                             fetchAdapterID(appName)
                                                     .doOnNext(new Consumer<String>() {
@@ -262,10 +263,11 @@ public class ReactiveConsumer {
                 public XMessage apply(JsonNode campaign) {
 	    			String campaignID = campaign.findValue("id").asText();
 	    			Map<String, String> formIDs = getCampaignFormIds(campaign);
+	    			
 	    			String currentFormID = getCurrentFormId(xmsg, campaignID, formIDs, user);
 	    			
 	    			HashMap<String, String> metaData = new HashMap<String, String>();
-	    			metaData.put("campaignId", campaignID);
+	    			metaData.put("campaignID", campaignID);
 					metaData.put("currentFormID", currentFormID);
 					
 					saveCurrentFormID(xmsg.getFrom().getUserID(), campaignID, 
@@ -308,6 +310,10 @@ public class ReactiveConsumer {
     		campaign.findValue("logic").forEach(t -> {
     			formIDs2.put(t.findValue("id").asText(), t.findValue("formID").asText());
     		});
+    		
+
+//    		formIDs2.put("a96b0865-5a76-4566-8694-c09361b8ae31", "mandatory-consent-v1");
+//			formIDs2.put("e96b0865-5a76-4566-8694-c09361b8ae32", "UCI-demo-1");
     		
     		System.out.println("formIDs:"+formIDs2);
     	} catch (Exception e) {
@@ -497,7 +503,8 @@ public class ReactiveConsumer {
 	    		consent = true;
 	    	}
     	} catch (Exception e) {
-    		e.printStackTrace();
+    		log.info(e.getMessage());
+//    		e.printStackTrace();
     	}
     	return consent;
     }
@@ -520,6 +527,7 @@ public class ReactiveConsumer {
         		updateFAUser(user);
     		}
     	} catch (Exception e) {
+    		log.info(e.getMessage());
     		e.printStackTrace();
     	}
     }
@@ -637,18 +645,21 @@ public class ReactiveConsumer {
                             public Mono<String> apply(String appName1) {
                                 log.info("Inside getCampaignFromStartingMessage => " + appName1);
                                 if (appName1 == null || appName1.equals("")) {
+//                                	System.out.println("inside");
                                     try {
                                         return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                             @Override
                                             public String apply(XMessageDAO xMessageLast) {
-                                                return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
+//                                            	System.out.println("1:"+xMessageLast.getXMessage());
+                                            	return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
                                             }
                                         });
                                     } catch (Exception e2) {
                                         return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                             @Override
                                             public String apply(XMessageDAO xMessageLast) {
-                                                return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
+//                                            	System.out.println("2:"+xMessageLast.getApp());
+                                            	return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
                                             }
                                         });
                                     }
