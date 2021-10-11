@@ -117,20 +117,12 @@ public class ReactiveConsumer {
                         try {
                             final long startTime = System.nanoTime();
                             XMessage msg = XMessageParser.parse(new ByteArrayInputStream(stringMessage.value().getBytes()));
-                            System.out.println(msg.getTransformers());
-//                            if(msg.getTransformers() != null) {
-//                            	msg.getTransformers().forEach((t)->{
-//                                	System.out.println(t.getId());
-//                                	System.out.println(t.getMetaData());
-//                                });
-//                            }
                             SenderReceiverInfo from = msg.getFrom();
                             logTimeTaken(startTime, 1);
                             getAppName(msg.getPayload().getText(), msg.getFrom())
                                     .doOnNext(new Consumer<String>() {
                                         @Override
                                         public void accept(String appName) {
-                                        	System.out.println("appName:"+appName);
                                             logTimeTaken(startTime, 2);
                                             fetchAdapterID(appName)
                                                     .doOnNext(new Consumer<String>() {
@@ -144,7 +136,6 @@ public class ReactiveConsumer {
                                                                         @Override
                                                                         public void accept(XMessage msg) {
                                                                         	SenderReceiverInfo from = msg.getFrom();
-                                                                            // msg.setFrom(from);
                                                                             msg.setApp(appName);
                                                                             getLastMessageID(msg)
                                                                                     .doOnNext(lastMessageID -> {
@@ -173,7 +164,7 @@ public class ReactiveConsumer {
                                                                     .doOnError(new Consumer<Throwable>() {
                                                                         @Override
                                                                         public void accept(Throwable throwable) {
-                                                                            log.error("Error in resolveUser" + throwable.getMessage());
+                                                                            log.error("Error in resolveUser:" + throwable.getMessage());
                                                                         }
                                                                     })
                                                                     .subscribe();
@@ -211,6 +202,12 @@ public class ReactiveConsumer {
                 .subscribe();
     }
     
+    /**
+     * Resolve user and return interpreted xmessage
+     * 
+     * @param xmsg
+     * @return Mono<XMessage>
+     */
     private Mono<XMessage> resolveUserNew(XMessage xmsg) {
         try {
         	SenderReceiverInfo from = xmsg.getFrom();
@@ -246,18 +243,24 @@ public class ReactiveConsumer {
                         }).doOnError(new Consumer<Throwable>() {
                             @Override
                             public void accept(Throwable throwable) {
-                                log.error("Error in updateUser" + throwable.getMessage());
+                                log.error("Error in resolveUserNew:updateUser" + throwable.getMessage());
                             }
                         });
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            log.error("Error in resolveUser" + e.getMessage());
+        	log.error("Error in resolveUserNew:"+e.getMessage());
             xmsg.setFrom(null);
             return Mono.just(xmsg);
         }
     }
     
+    /**
+     * Set current form id and campaign id in xmessage and return it
+     * 
+     * @param xmsg
+     * @param user
+     * @return Mono<XMessage>
+     */
     private Mono<XMessage> xmsgCampaignForm(XMessage xmsg, User user) {
     	return campaignService.getCampaignFromNameTransformer(xmsg.getCampaign())
 	    	.map(new Function<JsonNode, XMessage>() {
@@ -285,10 +288,9 @@ public class ReactiveConsumer {
 	    			xmsg.setTransformers(transformers);
 	    			
 	    			try {
-						System.out.println("XML:"+xmsg.toXML());
+						log.info("XMessage XML:"+xmsg.toXML());
 					} catch (JAXBException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						log.error("Error in xmsgCampaignForm for xml print:"+e.getMessage());
 					}
 	    			
 	    			return xmsg;
@@ -311,15 +313,20 @@ public class ReactiveConsumer {
     		
     		campaign.findValue("logic").forEach(t -> {
     			formIDs2.put(t.findValue("id").asText(), t.findValue("formID").asText());
+//    			if (t.findValue("formID").asText().equals("UCI-demo-4")) {
+//    				formIDs2.put(t.findValue("id").asText(), "UCI-demo-1");
+//    			} else {
+//    				formIDs2.put(t.findValue("id").asText(), t.findValue("formID").asText());
+//    			}
     		});
     		
 
 //    		formIDs2.put("a96b0865-5a76-4566-8694-c09361b8ae31", "mandatory-consent-v1");
 //			formIDs2.put("e96b0865-5a76-4566-8694-c09361b8ae32", "UCI-demo-1");
     		
-    		System.out.println("formIDs:"+formIDs2);
+    		log.info("List of formIDs:"+formIDs2);
     	} catch (Exception e) {
-    		e.printStackTrace();
+    		log.error("Error in getCampaignFormIds:"+e.getMessage());
     	}
     	return formIDs2;
     }
@@ -339,12 +346,12 @@ public class ReactiveConsumer {
     	
     	/* Fetch current form id from file for user & campaign */
     	currentFormID = getCurrentFormIDFromFile(xmsg.getFrom().getUserID(), campaignID);
+    	log.info("CurrentFormID from userCurrentForm File:"+currentFormID);
     	
     	/* if current form id is empty, then set the first form id as current form id 
     	 * else if current form id is equal to consent form id
     	 	* 	
     	 */
-    	System.out.println("currentFormID:"+currentFormID);
     	if(currentFormID == null || currentFormID.isEmpty()) {
     		if(!formIDs.isEmpty() && formIDs.size() > 0) {
 				currentFormID = formIDs.values().toArray()[0].toString();
@@ -363,17 +370,18 @@ public class ReactiveConsumer {
         			//update fusion auth client for consent & set the next form id as current form id
         			addUserCampaignConsent(campaignID, user);
         			currentFormID = formIDs.values().toArray()[1].toString();
+        			log.info("User consent given.");
         		} else if(response.equals("2")) {
         			//drop conversation
         			currentFormID = "";
-        			System.out.println("drop conversation.");
+        			log.info("Set currentFormID as empty to drop conversation");
         		} else {
         			// invalid response, leave the consent form id as current
         		}
     		}	
     	}
     	
-    	System.out.println(currentFormID);
+    	log.info("currentFormID:"+currentFormID);
     	
     	return currentFormID;
     }
@@ -394,14 +402,14 @@ public class ReactiveConsumer {
             
         	ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readTree(bdata);
-            System.out.println("File Data Node:"+rootNode);
+            log.info("UserCurrentForm file data node:"+rootNode);
             
             if(!rootNode.isEmpty() && rootNode.get(userID) != null 
             		&& rootNode.path(userID).get(campaignID) != null) {
             	currentFormID = rootNode.path(userID).get(campaignID).asText();
             }
         } catch (IOException e) {
-        	log.info("Error in getCurrentFormIDFromFile:"+e.getMessage());
+        	log.error("Error in getCurrentFormIDFromFile:"+e.getMessage());
         }
         return currentFormID;
     }
@@ -434,13 +442,13 @@ public class ReactiveConsumer {
             	((ObjectNode) rootNode).put(userID, campaignNode);
             }
             
-            System.out.println("Saved File String:"+rootNode.toString());
+            log.info("Data saved in userCurrentForm file:"+rootNode.toString());
             
             FileWriter fileWriter = new FileWriter(file);
             fileWriter.write(rootNode.toString());
             fileWriter.close();
         } catch (IOException e) {
-        	log.info("Error in saveCurrentFormID:"+e.getMessage());
+        	log.error("Error in saveCurrentFormID:"+e.getMessage());
         }
     }
 	
@@ -457,7 +465,7 @@ public class ReactiveConsumer {
 	    	}
 	    	return file;
 		} catch (IOException e) {
-			log.info("Error in getCurrentUserJsonFile:"+e.getMessage());
+			log.error("Error in getCurrentUserJsonFile:"+e.getMessage());
 		}
 		return null;
 	}
@@ -471,6 +479,11 @@ public class ReactiveConsumer {
     	return "src/main/resources/userCurrentForm.json";
     }
     
+    /**
+	 * Get Consent Form ID
+	 * 
+	 * @return String
+	 */
     private String getConsentFormID() {
     	return "mandatory-consent-v1";
     }
@@ -483,7 +496,6 @@ public class ReactiveConsumer {
             ClientResponse<UserResponse, Errors> response = campaignService.fusionAuthClient.retrieveUserByUsername(deviceID);
             if (response.wasSuccessful()) {
                 from.setDeviceID(response.successResponse.user.id.toString());
-//                checkConsent(from.getCampaignID(), response.successResponse.user);
                 return Mono.just(from);
             } else {
                 return botService.updateUser(deviceString, appName)
@@ -511,26 +523,44 @@ public class ReactiveConsumer {
         }
     }
     
+    /**
+     * Check if consent for a campaign of a user 
+     * 
+     * @param campaignID
+     * @param user
+     * @return Boolean
+     */
     private Boolean checkUserCampaignConsent(String campaignID, User user) {
     	Boolean consent = false;
     	try {
 	    	Object consentData = user.data.get("consent");
+	    	log.info("consentData: "+consentData);
 	    	ArrayList consentArray = (ArrayList) consentData;
 	    	if(consentArray != null && consentArray.contains(campaignID)) {
 	    		consent = true;
 	    	}
     	} catch (Exception e) {
-    		log.info(e.getMessage());
-//    		e.printStackTrace();
+    		log.error("Error in checkUserCampaignConsent:"+e.getMessage());
     	}
     	return consent;
     }
     
+    /**
+     * Add consent for a campaign of a user 
+     * 
+     * @param campaignID
+     * @param user
+     */
     private void addUserCampaignConsent(String campaignID, User user) 
     {
     	try {
-    		Object consentData = user.data.get("consent");
-			ArrayList consentArray = (ArrayList) consentData;
+    		ArrayList consentArray = new ArrayList();
+    		try {
+    			Object consentData = user.data.get("consent");
+    			consentArray = (ArrayList) consentData;
+    		} catch (ClassCastException e) {
+    			log.error("Cast error in addUserCampaignConsent:"+e.getMessage());
+    		}
     		
 			if(consentArray == null) {
 				consentArray = new ArrayList();
@@ -538,26 +568,29 @@ public class ReactiveConsumer {
 			
     		if(consentArray != null && !consentArray.contains(campaignID)) {
     			consentArray.add(campaignID);
-    			
     			user.data.put("consent", consentArray); 
-        		
         		updateFAUser(user);
     		}
     	} catch (Exception e) {
-    		log.info(e.getMessage());
     		e.printStackTrace();
+    		log.error("Error in addUserCampaignConsent:"+e.getMessage());
     	}
     }
     
-    private void updateFAUser(User user) {
-    	System.out.println(user);
+    /**
+     * Update fusion auth user
+     * 
+     * @param user
+     */
+    private void updateFAUser(User user) 
+    {
     	UserRequest r = new UserRequest(user);
 		
     	ClientResponse<UserResponse, Errors> response = campaignService.fusionAuthClient.updateUser(user.id, r);
 		if(response.wasSuccessful()) {
-			System.out.println("user update success");
+			log.info("Fusion auth user update successful");
 		} else {
-			System.out.println("error in user update"+response.errorResponse);
+			log.info("Error in updateFAUser:"+response.errorResponse);
 		}
     }
 
@@ -662,12 +695,10 @@ public class ReactiveConsumer {
                             public Mono<String> apply(String appName1) {
                                 log.info("Inside getCampaignFromStartingMessage => " + appName1);
                                 if (appName1 == null || appName1.equals("")) {
-//                                	System.out.println("inside");
                                     try {
                                         return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                             @Override
                                             public String apply(XMessageDAO xMessageLast) {
-//                                            	System.out.println("1:"+xMessageLast.getXMessage());
                                             	return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
                                             }
                                         });
@@ -675,7 +706,6 @@ public class ReactiveConsumer {
                                         return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
                                             @Override
                                             public String apply(XMessageDAO xMessageLast) {
-//                                            	System.out.println("2:"+xMessageLast.getApp());
                                             	return (xMessageLast.getApp() == null || xMessageLast.getApp().isEmpty()) ? "finalAppName" : xMessageLast.getApp();
                                             }
                                         });
