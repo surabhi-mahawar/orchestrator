@@ -49,7 +49,9 @@ import reactor.kafka.receiver.ReceiverRecord;
 
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -270,7 +272,7 @@ public class ReactiveConsumer {
 	    			metaData.put("campaignID", campaignID);
 					metaData.put("currentFormID", currentFormID);
 					
-					saveCurrentFormID(xmsg.getFrom().getUserID(), campaignID, 
+					saveCurrentFormIDInFile(xmsg.getFrom().getUserID(), campaignID, 
 							currentFormID);
 	    			
 	    			Transformer transf = new Transformer();
@@ -385,14 +387,12 @@ public class ReactiveConsumer {
      */
     private String getCurrentFormIDFromFile(String userID, String campaignID) {
     	String currentFormID = "";
-    	Resource resource = new ClassPathResource(getJsonFilePath());
-        try {
-        	ObjectMapper mapper = new ObjectMapper();
-        	
-            InputStream inputStream = resource.getInputStream();
-        	
-            byte[] bdata = FileCopyUtils.copyToByteArray(inputStream);
+    	try {
+    		File file = getCurrentUserJsonFile();
+        	InputStream inputStream = new FileInputStream(file);
+        	byte[] bdata = FileCopyUtils.copyToByteArray(inputStream);
             
+        	ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readTree(bdata);
             System.out.println("File Data Node:"+rootNode);
             
@@ -401,7 +401,7 @@ public class ReactiveConsumer {
             	currentFormID = rootNode.path(userID).get(campaignID).asText();
             }
         } catch (IOException e) {
-        	e.printStackTrace();
+        	log.info("Error in getCurrentFormIDFromFile:"+e.getMessage());
         }
         return currentFormID;
     }
@@ -413,17 +413,14 @@ public class ReactiveConsumer {
      * @param campaignID
      * @param currentFormID
      */
-	private void saveCurrentFormID(String userID, String campaignID, String currentFormID) {
-    	Resource resource = new ClassPathResource(getJsonFilePath());
-        try {
-        	ObjectMapper mapper = new ObjectMapper();
-        	
-        	File file = resource.getFile();
-            InputStream inputStream = resource.getInputStream();
-        	
-            byte[] bdata = FileCopyUtils.copyToByteArray(inputStream);
+	private void saveCurrentFormIDInFile(String userID, String campaignID, String currentFormID) {
+    	try {
+    		File file = getCurrentUserJsonFile();
+        	InputStream inputStream = new FileInputStream(file);
+        	byte[] bdata = FileCopyUtils.copyToByteArray(inputStream);
             
-            JsonNode rootNode = mapper.readTree(bdata);
+        	ObjectMapper mapper = new ObjectMapper();
+        	JsonNode rootNode = mapper.readTree(bdata);
             if(rootNode.isEmpty()) {
             	rootNode = mapper.createObjectNode();
             }
@@ -441,18 +438,38 @@ public class ReactiveConsumer {
             
             FileWriter fileWriter = new FileWriter(file);
             fileWriter.write(rootNode.toString());
-            fileWriter.flush();
             fileWriter.close();
         } catch (IOException e) {
-        	e.printStackTrace();
+        	log.info("Error in saveCurrentFormID:"+e.getMessage());
         }
     }
+	
+	/**
+	 * Get Current User Json File to get, if not exists create one
+	 * 
+	 * @return File
+	 */
+	private File getCurrentUserJsonFile() {
+		try {
+			File file = new File(getCurrentUserJsonFilePath());
+	    	if(!file.exists()) {
+	    		file.createNewFile();
+	    	}
+	    	return file;
+		} catch (IOException e) {
+			log.info("Error in getCurrentUserJsonFile:"+e.getMessage());
+		}
+		return null;
+	}
     
-    private String getJsonFilePath() {
-    	return "userCurrentForm.json";
+	/**
+	 * Get Path to userCurrentForm file 
+	 * 
+	 * @return String
+	 */
+    private String getCurrentUserJsonFilePath() {
+    	return "src/main/resources/userCurrentForm.json";
     }
-    
-//    private 
     
     private String getConsentFormID() {
     	return "mandatory-consent-v1";
