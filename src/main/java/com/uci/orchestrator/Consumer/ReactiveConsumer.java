@@ -490,11 +490,11 @@ public class ReactiveConsumer {
     private Boolean checkUserCampaignConsent(String campaignID, User user) {
     	Boolean consent = false;
     	try {
-    		Object consentData = user.data.get("consent");
-    		ArrayList consentArray = (ArrayList) consentData;
-    		if(consentArray.contains(campaignID)) {
-    			consent = true;
-    		}
+	    	Object consentData = user.data.get("consent");
+	    	ArrayList consentArray = (ArrayList) consentData;
+	    	if(consentArray != null && consentArray.contains(campaignID)) {
+	    		consent = true;
+	    	}
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
@@ -505,8 +505,11 @@ public class ReactiveConsumer {
     {
     	try {
     		Object consentData = user.data.get("consent");
-    		ArrayList consentArray = (ArrayList) consentData;
-    		if(!consentArray.contains(campaignID)) {
+			ArrayList consentArray = (ArrayList) consentData;
+    		
+    		if(consentArray == null || (
+    			consentArray != null && !consentArray.contains(campaignID))
+    		){
     			consentArray.add(campaignID);
     			
     			user.data.put("consent", consentArray); 
