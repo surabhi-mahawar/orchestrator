@@ -129,11 +129,13 @@ public class ReactiveConsumer {
                                         @Override
                                         public void accept(String appName) {
                                             logTimeTaken(startTime, 2);
+                                            msg.setApp(appName);
                                             fetchAdapterID(appName)
                                                     .doOnNext(new Consumer<String>() {
                                                         @Override
                                                         public void accept(String adapterID) {
                                                             logTimeTaken(startTime, 3);
+
                                                             from.setCampaignID(appName);
                                                             from.setDeviceType(DeviceType.PHONE);
                                                             resolveUserNew(msg)
@@ -609,7 +611,7 @@ public class ReactiveConsumer {
 
     private Mono<String> getAppName(String text, SenderReceiverInfo from) {
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
-        log.info("Inside getAppName" + text + "::" + from.getUserID());
+        log.info("Inside getAppName " + text + "::" + from.getUserID());
         if (text.equals("")) {
             try {
                 return getLatestXMessage(from.getUserID(), yesterday, XMessage.MessageState.SENT.name()).map(new Function<XMessageDAO, String>() {
@@ -628,6 +630,7 @@ public class ReactiveConsumer {
             }
         } else {
             try {
+                log.info("Inside getAppName " + text + "::" + from.getUserID());
                 return botService.getCampaignFromStartingMessage(text)
                         .flatMap(new Function<String, Mono<? extends String>>() {
                             @Override
