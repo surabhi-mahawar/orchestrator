@@ -129,6 +129,7 @@ public class ReactiveConsumer {
                                         @Override
                                         public void accept(String appName) {
                                             logTimeTaken(startTime, 2);
+					    msg.setApp(appName);
                                             fetchAdapterID(appName)
                                                     .doOnNext(new Consumer<String>() {
                                                         @Override
