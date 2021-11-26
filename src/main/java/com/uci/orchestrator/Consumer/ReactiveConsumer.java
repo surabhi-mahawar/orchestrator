@@ -114,6 +114,7 @@ public class ReactiveConsumer {
                     public void accept(ReceiverRecord<String, String> stringMessage) {
                         try {
                             final long startTime = System.nanoTime();
+                            logTimeTaken(startTime, 0);
                             XMessage msg = XMessageParser.parse(new ByteArrayInputStream(stringMessage.value().getBytes()));
                             System.out.println(msg.getTransformers());
 //                            if(msg.getTransformers() != null) {
