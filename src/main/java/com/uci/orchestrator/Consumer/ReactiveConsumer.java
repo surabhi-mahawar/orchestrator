@@ -106,6 +106,7 @@ public class ReactiveConsumer {
     private final String DEFAULT_APP_NAME = "Global Bot";
     LocalDateTime yesterday = LocalDateTime.now().minusDays(1L);
 
+    
     @EventListener(ApplicationStartedEvent.class)
     public void onMessage() {
         reactiveKafkaReceiver
@@ -116,13 +117,6 @@ public class ReactiveConsumer {
                             final long startTime = System.nanoTime();
                             logTimeTaken(startTime, 0);
                             XMessage msg = XMessageParser.parse(new ByteArrayInputStream(stringMessage.value().getBytes()));
-                            System.out.println(msg.getTransformers());
-//                            if(msg.getTransformers() != null) {
-//                            	msg.getTransformers().forEach((t)->{
-//                                	System.out.println(t.getId());
-//                                	System.out.println(t.getMetaData());
-//                                });
-//                            }
                             SenderReceiverInfo from = msg.getFrom();
                             logTimeTaken(startTime, 1);
                             getAppName(msg.getPayload().getText(), msg.getFrom())

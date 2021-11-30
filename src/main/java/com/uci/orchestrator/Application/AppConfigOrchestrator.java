@@ -1,6 +1,6 @@
 package com.uci.orchestrator.Application;
 
-import com.uci.dao.service.HealthService;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.uci.orchestrator.Drools.DroolsBeanFactory;
 import com.uci.utils.CampaignService;
 import com.uci.utils.kafka.ReactiveProducer;
@@ -10,8 +10,9 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.kie.api.io.Resource;
 import org.kie.api.runtime.KieSession;
 import org.kie.internal.io.ResourceFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
@@ -28,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
+@EnableCaching
 public class AppConfigOrchestrator {
 
     @Value("${spring.kafka.bootstrap-servers}")
@@ -46,6 +48,9 @@ public class AppConfigOrchestrator {
 
     @Value("${fusionauth.key}")
     public String FUSIONAUTH_KEY;
+    
+    @Autowired
+    public Cache<Object, Object> cache;
 
     @Bean
     public FusionAuthClient getFAClient() {
@@ -59,7 +64,7 @@ public class AppConfigOrchestrator {
                 .defaultHeader("admin-token", CAMPAIGN_ADMIN_TOKEN)
                 .build();
         FusionAuthClient fusionAuthClient = getFAClient();
-        return new CampaignService(webClient, fusionAuthClient);
+        return new CampaignService(webClient, fusionAuthClient, cache);
     }
 
     @Bean
