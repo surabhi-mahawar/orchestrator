@@ -130,70 +130,52 @@ public class ReactiveConsumer {
 					Span rootSpan = tracer.spanBuilder("orchestrator-processMessage").startSpan();
 					try (Scope scope = rootSpan.makeCurrent()) {
 						Context currentContext = Context.current();
-						Span childSpan1 = createChildSpan("getAppName", currentContext, rootSpan);
 						SenderReceiverInfo from = msg.getFrom();
+						Span childSpan1 = createChildSpan("fetchAdapterID", currentContext, rootSpan);
 						logTimeTaken(startTime, 1);
-						getAppName(msg.getPayload().getText(), msg.getFrom()).doOnNext(new Consumer<String>() {
+						fetchAdapterID(msg.getApp()).doOnNext(new Consumer<String>() {
 							@Override
-							public void accept(String appName) {
+							public void accept(String adapterID) {
 								childSpan1.end();
-								Span childSpan2 = createChildSpan("fetchAdapterID", currentContext, rootSpan);
+								Span childSpan2 = createChildSpan("resolveUserNew", currentContext, rootSpan);
 								logTimeTaken(startTime, 2);
-								msg.setApp(appName);
-								fetchAdapterID(appName).doOnNext(new Consumer<String>() {
+								from.setCampaignID(msg.getApp());
+								from.setDeviceType(DeviceType.PHONE);
+								resolveUserNew(msg).doOnNext(new Consumer<XMessage>() {
 									@Override
-									public void accept(String adapterID) {
+									public void accept(XMessage msg) {
 										childSpan2.end();
-										Span childSpan3 = createChildSpan("resolveUserNew", currentContext, rootSpan);
-										logTimeTaken(startTime, 3);
-										from.setCampaignID(appName);
-										from.setDeviceType(DeviceType.PHONE);
-										resolveUserNew(msg).doOnNext(new Consumer<XMessage>() {
-											@Override
-											public void accept(XMessage msg) {
-												childSpan3.end();
-												Span childSpan4 = createChildSpan("getLastMessageID", currentContext, rootSpan);
-												SenderReceiverInfo from = msg.getFrom();
-												// msg.setFrom(from);
-												msg.setApp(appName);
-												getLastMessageID(msg).doOnNext(lastMessageID -> {
+										Span childSpan3 = createChildSpan("getLastMessageID", currentContext, rootSpan);
+										SenderReceiverInfo from = msg.getFrom();
+										// msg.setFrom(from);
+										getLastMessageID(msg).doOnNext(lastMessageID -> {
+											childSpan3.end();
+											Span childSpan4 = createChildSpan("sendMessageToKafka", currentContext,
+													rootSpan);
+											logTimeTaken(startTime, 3);
+											msg.setLastMessageID(lastMessageID);
+											msg.setAdapterId(adapterID);
+											if (msg.getMessageState().equals(XMessage.MessageState.REPLIED)
+													|| msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
+												try {
+													kafkaProducer.send(odkTransformerTopic, msg.toXML());
 													childSpan4.end();
-													Span childSpan5 = createChildSpan("sendMessageToKafka", currentContext, rootSpan);
-													logTimeTaken(startTime, 4);
-													msg.setLastMessageID(lastMessageID);
-													msg.setAdapterId(adapterID);
-													if (msg.getMessageState().equals(XMessage.MessageState.REPLIED)
-															|| msg.getMessageState()
-																	.equals(XMessage.MessageState.OPTED_IN)) {
-														try {
-															kafkaProducer.send(odkTransformerTopic, msg.toXML());
-															childSpan5.end();
-															rootSpan.end();
-															// reactiveProducer.sendMessages(odkTransformerTopic,
-															// msg.toXML());
-														} catch (JAXBException e) {
-															e.printStackTrace();
-														}
-														logTimeTaken(startTime, 15);
-													}
-												})
-												.doOnError(genericError("getLastMessageID", childSpan4))
-												.subscribe();
+													rootSpan.end();
+													// reactiveProducer.sendMessages(odkTransformerTopic,
+													// msg.toXML());
+												} catch (JAXBException e) {
+													e.printStackTrace();
+												}
+												logTimeTaken(startTime, 15);
 											}
-										})
-										.doOnError(genericError("resolveUserNew", childSpan3))
-										.subscribe();
-
+										}).doOnError(genericError("getLastMessageID", childSpan3)).subscribe();
 									}
-								})
-								.doOnError(genericError("fetchAdapterID", childSpan2))
-								.subscribe();
-							}
-						})
-						.doOnError(genericError("getAppName", childSpan1))
-						.subscribe();
+								}).doOnError(genericError("resolveUserNew", childSpan2)).subscribe();
 
-					} catch(Throwable e) {
+							}
+						}).doOnError(genericError("fetchAdapterID", childSpan1)).subscribe();
+
+					} catch (Throwable e) {
 						genericException(e.getMessage(), rootSpan);
 					} finally {
 //                        rootSpan.end();
@@ -202,14 +184,13 @@ public class ReactiveConsumer {
 					e.printStackTrace();
 				}
 			}
-		})
-		.doOnError(genericError("KafkaFlux", null))
-		.subscribe();
+		}).doOnError(genericError("KafkaFlux", null)).subscribe();
 
 	}
-	
+
 	/**
 	 * Create Child Span with current context & parent span
+	 * 
 	 * @param spanName
 	 * @param context
 	 * @param parentSpan
@@ -219,23 +200,25 @@ public class ReactiveConsumer {
 		String prefix = "orchestrator-";
 		return tracer.spanBuilder(prefix + spanName).setParent(context.with(parentSpan)).startSpan();
 	}
-	
+
 	/**
 	 * Log Exceptions & if span exists, add error to span
+	 * 
 	 * @param eMsg
 	 * @param span
 	 */
 	private void genericException(String eMsg, Span span) {
 		eMsg = "Exception: " + eMsg;
 		log.error(eMsg);
-		if(span != null) {
+		if (span != null) {
 			span.setStatus(StatusCode.ERROR, "Exception: " + eMsg);
 			span.end();
 		}
 	}
 
 	/**
-	 * Log Exception & if span exists, add error to span 
+	 * Log Exception & if span exists, add error to span
+	 * 
 	 * @param s
 	 * @param span
 	 * @return
@@ -286,8 +269,7 @@ public class ReactiveConsumer {
 									return Mono.just(xmsg);
 								}
 							}
-						})
-						.doOnError(genericError("updateUser", null));
+						}).doOnError(genericError("updateUser", null));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -330,8 +312,7 @@ public class ReactiveConsumer {
 
 						return xmsg;
 					}
-				})
-				.doOnError(genericError("getCampaignFromNameTransformer", null));
+				}).doOnError(genericError("getCampaignFromNameTransformer", null));
 	}
 
 	/**
@@ -566,7 +547,7 @@ public class ReactiveConsumer {
 	}
 
 	private void updateFAUser(User user) {
-		log.error("User: "+user);
+		log.error("User: " + user);
 		UserRequest r = new UserRequest(user);
 
 		ClientResponse<UserResponse, Errors> response = campaignService.fusionAuthClient.updateUser(user.id, r);
@@ -633,8 +614,7 @@ public class ReactiveConsumer {
 						}
 						return new XMessageDAO();
 					}
-				})
-				.doOnError(genericError("getLatestXMessage", null));
+				}).doOnError(genericError("getLatestXMessage", null));
 	}
 
 	private Mono<String> fetchAdapterID(String appName) {
@@ -700,8 +680,7 @@ public class ReactiveConsumer {
 								return (appName1 == null || appName1.isEmpty()) ? Mono.just("finalAppName")
 										: Mono.just(appName1);
 							}
-						})
-						.doOnError(genericError("getCampaignFromStartingMessage" , null));
+						}).doOnError(genericError("getCampaignFromStartingMessage", null));
 			} catch (Exception e) {
 				log.info("Inside getAppName - exception => " + e.getMessage());
 				try {
