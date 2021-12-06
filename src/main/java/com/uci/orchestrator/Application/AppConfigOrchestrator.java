@@ -86,6 +86,7 @@ public class AppConfigOrchestrator {
         configuration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
         configuration.put(ProducerConfig.CLIENT_ID_CONFIG, "sample-producer");
         configuration.put(ProducerConfig.ACKS_CONFIG, "all");
+        configuration.put(org.springframework.kafka.support.serializer.JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
         configuration.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.springframework.kafka.support.serializer.JsonSerializer.class);
         configuration.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, org.springframework.kafka.support.serializer.JsonSerializer.class);
         return configuration;
