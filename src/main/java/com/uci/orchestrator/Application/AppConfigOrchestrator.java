@@ -74,6 +74,8 @@ public class AppConfigOrchestrator {
         Map<String, Object> configuration = new HashMap<>();
         configuration.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
         configuration.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
+        configuration.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+        configuration.put(org.springframework.kafka.support.serializer.JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
         configuration.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, org.springframework.kafka.support.serializer.JsonSerializer.class);
         configuration.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, org.springframework.kafka.support.serializer.JsonSerializer.class);
         configuration.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
