@@ -47,7 +47,7 @@ public class ServiceStatusController {
     @RequestMapping(value = "/health/kafka", method = RequestMethod.GET, produces = { "application/json", "text/json" })
     public ResponseEntity<JsonNode> kafkaStatusCheck() throws IOException, JsonProcessingException {
     	JsonNode jsonNode = getResponseJsonNode();
-    	((ObjectNode) jsonNode).put("result", healthService.getKafkaHealthNode());
+//    	((ObjectNode) jsonNode).put("result", healthService.getKafkaHealthNode());
         
         return ResponseEntity.ok(jsonNode);
     }
