@@ -16,6 +16,7 @@ import com.uci.utils.CampaignService;
 import com.uci.utils.encryption.AESWrapper;
 import com.uci.utils.kafka.ReactiveProducer;
 import com.uci.utils.kafka.SimpleProducer;
+import com.uci.utils.kafka.SimpleProducer1;
 
 import io.fusionauth.domain.api.UserConsentResponse;
 import io.fusionauth.domain.api.UserRequest;
@@ -35,6 +36,8 @@ import messagerosa.core.model.Transformer;
 import messagerosa.core.model.XMessage;
 import messagerosa.xml.XMessageParser;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.protocol.types.Field;
 import org.apache.tomcat.util.json.JSONParser;
 import org.json.JSONArray;
@@ -81,7 +84,7 @@ import static com.uci.utils.encryption.AESWrapper.encodeKey;
 @Slf4j
 public class ReactiveConsumer {
 
-	private final Flux<ReceiverRecord<String, String>> reactiveKafkaReceiver;
+	private final Flux<ConsumerRecord<String, String>> reactiveKafkaReceiver;
 
 //    @Autowired
 //    public KieSession kSession;
@@ -90,7 +93,7 @@ public class ReactiveConsumer {
 	public XMessageRepository xMessageRepository;
 
 	@Autowired
-	public SimpleProducer kafkaProducer;
+	public SimpleProducer1 kafkaProducer;
 
 	@Autowired
 	public ReactiveProducer reactiveProducer;
@@ -117,16 +120,19 @@ public class ReactiveConsumer {
 
 	@EventListener(ApplicationStartedEvent.class)
 	public void onMessage() {
-		reactiveKafkaReceiver.doOnNext(new Consumer<ReceiverRecord<String, String>>() {
+		reactiveKafkaReceiver.doOnNext(new Consumer<ConsumerRecord<String, String>>() {
 			@Override
-			public void accept(ReceiverRecord<String, String> stringMessage) {
+			public void accept(ConsumerRecord<String, String> stringMessage) {
 				try {
+					
+					log.info("headers:"+stringMessage.headers());
 					final long startTime = System.nanoTime();
 					logTimeTaken(startTime, 0);
 					XMessage msg = XMessageParser.parse(new ByteArrayInputStream(stringMessage.value().getBytes()));
 
-//	                Context extracted = GlobalOpenTelemetry.getPropagators().getTextMapPropagator().extract(Context.current(), msg, null);
-//	                extracted.getCurrentSpan();
+	                Context extracted = GlobalOpenTelemetry.getPropagators().getTextMapPropagator().extract(Context.current(), stringMessage.headers(), null);
+	                log.info("extracted: "+extracted);
+	                // extracted.getCurrentSpan();
 					Span rootSpan = tracer.spanBuilder("orchestrator-processMessage").startSpan();
 					try (Scope scope = rootSpan.makeCurrent()) {
 						Context currentContext = Context.current();

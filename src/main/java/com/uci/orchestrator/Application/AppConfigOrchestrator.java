@@ -6,7 +6,9 @@ import com.uci.utils.CampaignService;
 import com.uci.utils.kafka.ReactiveProducer;
 import io.fusionauth.client.FusionAuthClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.kie.api.io.Resource;
 import org.kie.api.runtime.KieSession;
 import org.kie.internal.io.ResourceFactory;
@@ -67,12 +69,12 @@ public class AppConfigOrchestrator {
         return new CampaignService(webClient, fusionAuthClient, cache);
     }
 
-    @Bean
-    public KieSession DroolSession() {
-        Resource resource = ResourceFactory.newClassPathResource("OrchestratorRules.xlsx", getClass());
-        KieSession kSession = new DroolsBeanFactory().getKieSession(resource);
-        return kSession;
-    }
+//    @Bean
+//    public KieSession DroolSession() {
+//        Resource resource = ResourceFactory.newClassPathResource("OrchestratorRules.xlsx", getClass());
+//        KieSession kSession = new DroolsBeanFactory().getKieSession(resource);
+//        return kSession;
+//    }
 
     @Bean
     Map<String, Object> kafkaConsumerConfiguration() {
@@ -100,7 +102,7 @@ public class AppConfigOrchestrator {
     ReceiverOptions<String, String> kafkaReceiverOptions(@Value("${inboundProcessed}") String[] inTopicName) {
         ReceiverOptions<String, String> options = ReceiverOptions.create(kafkaConsumerConfiguration());
         return options.subscription(Arrays.asList(inTopicName))
-                .withKeyDeserializer(new JsonDeserializer<>())
+                .withKeyDeserializer(new StringDeserializer())
                 .withValueDeserializer(new JsonDeserializer());
     }
 
@@ -110,8 +112,8 @@ public class AppConfigOrchestrator {
     }
 
     @Bean
-    Flux<ReceiverRecord<String, String>> reactiveKafkaReceiver(ReceiverOptions<String, String> kafkaReceiverOptions) {
-        return KafkaReceiver.create(kafkaReceiverOptions).receive();
+    Flux<ConsumerRecord<String, String>> reactiveKafkaReceiver(ReceiverOptions<String, String> kafkaReceiverOptions) {
+        return KafkaReceiver.create(kafkaReceiverOptions).receiveAtmostOnce();
     }
 
     @Bean
