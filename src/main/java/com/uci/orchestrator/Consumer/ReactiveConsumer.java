@@ -91,6 +91,9 @@ public class ReactiveConsumer {
 
     @Value("${odk-transformer}")
     public String odkTransformerTopic;
+    
+    @Value("${orchestrator-integrity-test}")
+    public String integrityTestTopic;
 
     @Autowired
     public BotService botService;
@@ -148,6 +151,7 @@ public class ReactiveConsumer {
                                                                                         if (msg.getMessageState().equals(XMessage.MessageState.REPLIED) || msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
                                                                                             try {
                                                                                                 kafkaProducer.send(odkTransformerTopic, msg.toXML());
+                                                                                                kafkaProducer.send(integrityTestTopic, msg.toXML());
                                                                                                 // reactiveProducer.sendMessages(odkTransformerTopic, msg.toXML());
                                                                                             } catch (JAXBException e) {
                                                                                                 e.printStackTrace();
