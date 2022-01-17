@@ -93,7 +93,7 @@ public class ReactiveConsumer {
 	public XMessageRepository xMessageRepository;
 
 	@Autowired
-	public SimpleProducer1 kafkaProducer;
+	public SimpleProducer kafkaProducer;
 
 	@Autowired
 	public ReactiveProducer reactiveProducer;
@@ -130,34 +130,21 @@ public class ReactiveConsumer {
 					logTimeTaken(startTime, 0);
 					XMessage msg = XMessageParser.parse(new ByteArrayInputStream(stringMessage.value().getBytes()));
 
-	                Context extracted = GlobalOpenTelemetry.getPropagators().getTextMapPropagator().extract(Context.current(), stringMessage.headers(), null);
-	                log.info("extracted: "+extracted);
-	                // extracted.getCurrentSpan();
-					Span rootSpan = tracer.spanBuilder("orchestrator-processMessage").startSpan();
-					try (Scope scope = rootSpan.makeCurrent()) {
-						Context currentContext = Context.current();
+	                try {
 						SenderReceiverInfo from = msg.getFrom();
-						Span childSpan1 = createChildSpan("fetchAdapterID", currentContext, rootSpan);
 						logTimeTaken(startTime, 1);
 						fetchAdapterID(msg.getApp()).doOnNext(new Consumer<String>() {
 							@Override
 							public void accept(String adapterID) {
-								childSpan1.end();
-								Span childSpan2 = createChildSpan("resolveUserNew", currentContext, rootSpan);
 								logTimeTaken(startTime, 2);
 								from.setCampaignID(msg.getApp());
 								from.setDeviceType(DeviceType.PHONE);
 								resolveUserNew(msg).doOnNext(new Consumer<XMessage>() {
 									@Override
 									public void accept(XMessage msg) {
-										childSpan2.end();
-										Span childSpan3 = createChildSpan("getLastMessageID", currentContext, rootSpan);
 										SenderReceiverInfo from = msg.getFrom();
 										// msg.setFrom(from);
 										getLastMessageID(msg).doOnNext(lastMessageID -> {
-											childSpan3.end();
-											Span childSpan4 = createChildSpan("sendMessageToKafka", currentContext,
-													rootSpan);
 											logTimeTaken(startTime, 3);
 											msg.setLastMessageID(lastMessageID);
 											msg.setAdapterId(adapterID);
@@ -165,8 +152,6 @@ public class ReactiveConsumer {
 													|| msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
 												try {
 													kafkaProducer.send(odkTransformerTopic, msg.toXML());
-													childSpan4.end();
-													rootSpan.end();
 													// reactiveProducer.sendMessages(odkTransformerTopic,
 													// msg.toXML());
 												} catch (JAXBException e) {
@@ -174,17 +159,15 @@ public class ReactiveConsumer {
 												}
 												logTimeTaken(startTime, 15);
 											}
-										}).doOnError(genericError("getLastMessageID", childSpan3)).subscribe();
+										}).doOnError(genericError("getLastMessageID")).subscribe();
 									}
-								}).doOnError(genericError("resolveUserNew", childSpan2)).subscribe();
+								}).doOnError(genericError("resolveUserNew")).subscribe();
 
 							}
-						}).doOnError(genericError("fetchAdapterID", childSpan1)).subscribe();
+						}).doOnError(genericError("fetchAdapterID")).subscribe();
 
 					} catch (Throwable e) {
-						genericException(e.getMessage(), rootSpan);
-					} finally {
-//                        rootSpan.end();
+						genericException(e.getMessage());
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -221,6 +204,16 @@ public class ReactiveConsumer {
 			span.end();
 		}
 	}
+	
+	/**
+	 * Log Exceptions
+	 * 
+	 * @param eMsg
+	 */
+	private void genericException(String eMsg) {
+		eMsg = "Exception: " + eMsg;
+		log.error(eMsg);
+	}
 
 	/**
 	 * Log Exception & if span exists, add error to span
@@ -238,6 +231,19 @@ public class ReactiveConsumer {
 				span.setStatus(StatusCode.ERROR, msg);
 				span.end();
 			}
+		};
+	}
+	
+	/**
+	 * Log Exception
+	 * 
+	 * @param s
+	 * @return
+	 */
+	private Consumer<Throwable> genericError(String s) {
+		return c -> {
+			String msg = "Error in " + s + "::" + c.getMessage();
+			log.error(msg);
 		};
 	}
 
