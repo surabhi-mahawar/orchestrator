@@ -16,7 +16,8 @@ import com.uci.utils.CampaignService;
 import com.uci.utils.encryption.AESWrapper;
 import com.uci.utils.kafka.ReactiveProducer;
 import com.uci.utils.kafka.SimpleProducer;
-import com.uci.utils.kafka.SimpleProducer1;
+import com.uci.utils.kafka.adapter.TextMapGetterAdapter;
+import com.uci.utils.kafka.RecordProducer;
 
 import io.fusionauth.domain.api.UserConsentResponse;
 import io.fusionauth.domain.api.UserRequest;
@@ -27,6 +28,7 @@ import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import io.fusionauth.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,7 @@ import messagerosa.xml.XMessageParser;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.protocol.types.Field;
 import org.apache.tomcat.util.json.JSONParser;
 import org.json.JSONArray;
@@ -93,7 +96,7 @@ public class ReactiveConsumer {
 	public XMessageRepository xMessageRepository;
 
 	@Autowired
-	public SimpleProducer kafkaProducer;
+	public RecordProducer kafkaProducer;
 
 	@Autowired
 	public ReactiveProducer reactiveProducer;
@@ -123,10 +126,11 @@ public class ReactiveConsumer {
 		reactiveKafkaReceiver.doOnNext(new Consumer<ConsumerRecord<String, String>>() {
 			@Override
 			public void accept(ConsumerRecord<String, String> stringMessage) {
-				try {
-					
-					log.info("headers:"+stringMessage.headers());
-					final long startTime = System.nanoTime();
+				Context extractedContext = GlobalOpenTelemetry.getPropagators().getTextMapPropagator().extract(Context.current(), stringMessage.headers(), TextMapGetterAdapter.getter);
+                log.info("Opentelemetry extracted context : "+extractedContext);
+                
+        		try (Scope scope = extractedContext.makeCurrent()) {
+        			final long startTime = System.nanoTime();
 					logTimeTaken(startTime, 0);
 					XMessage msg = XMessageParser.parse(new ByteArrayInputStream(stringMessage.value().getBytes()));
 
@@ -151,7 +155,7 @@ public class ReactiveConsumer {
 											if (msg.getMessageState().equals(XMessage.MessageState.REPLIED)
 													|| msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
 												try {
-													kafkaProducer.send(odkTransformerTopic, msg.toXML());
+													kafkaProducer.send(odkTransformerTopic, msg.toXML(), Context.current());
 													// reactiveProducer.sendMessages(odkTransformerTopic,
 													// msg.toXML());
 												} catch (JAXBException e) {
