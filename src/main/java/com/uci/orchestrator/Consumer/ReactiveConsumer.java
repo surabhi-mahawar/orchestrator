@@ -137,9 +137,11 @@ public class ReactiveConsumer {
 	                try {
 						SenderReceiverInfo from = msg.getFrom();
 						logTimeTaken(startTime, 1);
+						Span childSpan1 = createChildSpan("fetchAdapterID");
 						fetchAdapterID(msg.getApp()).doOnNext(new Consumer<String>() {
 							@Override
 							public void accept(String adapterID) {
+								childSpan1.end();
 								logTimeTaken(startTime, 2);
 								from.setCampaignID(msg.getApp());
 								from.setDeviceType(DeviceType.PHONE);
@@ -148,16 +150,20 @@ public class ReactiveConsumer {
 									public void accept(XMessage msg) {
 										SenderReceiverInfo from = msg.getFrom();
 										// msg.setFrom(from);
+										Span childSpan2 = createChildSpan("getLastMessageID");
 										getLastMessageID(msg).doOnNext(lastMessageID -> {
+											childSpan2.end();
 											logTimeTaken(startTime, 3);
 											msg.setLastMessageID(lastMessageID);
 											msg.setAdapterId(adapterID);
 											if (msg.getMessageState().equals(XMessage.MessageState.REPLIED)
 													|| msg.getMessageState().equals(XMessage.MessageState.OPTED_IN)) {
 												try {
+													Span childSpan3 = createChildSpan("sendEventToKafka");
 													kafkaProducer.send(odkTransformerTopic, msg.toXML(), Context.current());
 													// reactiveProducer.sendMessages(odkTransformerTopic,
 													// msg.toXML());
+													childSpan3.end();
 												} catch (JAXBException e) {
 													e.printStackTrace();
 												}
@@ -192,6 +198,17 @@ public class ReactiveConsumer {
 	private Span createChildSpan(String spanName, Context context, Span parentSpan) {
 		String prefix = "orchestrator-";
 		return tracer.spanBuilder(prefix + spanName).setParent(context.with(parentSpan)).startSpan();
+	}
+	
+	/**
+	 * Create Child Span
+	 * 
+	 * @param spanName
+	 * @return childSpan
+	 */
+	private Span createChildSpan(String spanName) {
+		String prefix = "orchestratorSpan-";
+		return tracer.spanBuilder(prefix + spanName).startSpan();
 	}
 
 	/**
@@ -259,22 +276,28 @@ public class ReactiveConsumer {
 			String deviceString = from.getDeviceType().toString() + ":" + from.getUserID();
 			String encodedBase64Key = encodeKey(secret);
 			String deviceID = AESWrapper.encrypt(deviceString, encodedBase64Key);
+			Span childSpan1 = createChildSpan("FA-retrieveUserByUsername");
 			ClientResponse<UserResponse, Errors> response = campaignService.fusionAuthClient
 					.retrieveUserByUsername(deviceID);
+			childSpan1.end();
 			if (response.wasSuccessful()) {
 				from.setDeviceID(response.successResponse.user.id.toString());
 				xmsg.setFrom(from);
 				return xmsgCampaignForm(xmsg, response.successResponse.user);
 			} else {
+				Span childSpan2 = createChildSpan("updateUser");
 				return botService.updateUser(deviceString, appName)
 						.flatMap(new Function<Pair<Boolean, String>, Mono<XMessage>>() {
 							@Override
 							public Mono<XMessage> apply(Pair<Boolean, String> result) {
+								childSpan2.end();
 								if (result.getLeft()) {
 									from.setDeviceID(result.getRight());
 									xmsg.setFrom(from);
+									Span childSpan3 = createChildSpan("FA-retrieveUserByUsername");
 									ClientResponse<UserResponse, Errors> response = campaignService.fusionAuthClient
 											.retrieveUserByUsername(deviceID);
+									childSpan3.end();
 									if (response.wasSuccessful()) {
 										return xmsgCampaignForm(xmsg, response.successResponse.user);
 									} else {
@@ -296,10 +319,12 @@ public class ReactiveConsumer {
 	}
 
 	private Mono<XMessage> xmsgCampaignForm(XMessage xmsg, User user) {
+		Span childSpan1 = createChildSpan("getCampaignFromNameTransformer");
 		return campaignService.getCampaignFromNameTransformer(xmsg.getCampaign())
 				.map(new Function<JsonNode, XMessage>() {
 					@Override
 					public XMessage apply(JsonNode campaign) {
+						childSpan1.end();
 						String campaignID = campaign.findValue("id").asText();
 						Map<String, String> formIDs = getCampaignFormIds(campaign);
 						String currentFormID = getCurrentFormId(xmsg, campaignID, formIDs, user);
